@@ -6,6 +6,38 @@
 <title>Mr. O's Messenger</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Nunito+Sans:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+  import {
+    getFirestore, collection, doc, getDocs, addDoc, deleteDoc,
+    query, orderBy, onSnapshot, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCxHYSrEK4JTye6n0u-Wf3IesIB85-5fgc",
+    authDomain: "mr-os-messenger.firebaseapp.com",
+    projectId: "mr-os-messenger",
+    storageBucket: "mr-os-messenger.firebasestorage.app",
+    messagingSenderId: "639284932622",
+    appId: "1:639284932622:web:c450a5bc7be58841c0cc5f"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // ── Expose Firebase helpers to window so non-module code can call them ──
+  window._fb = {
+    db,
+    collection, doc, getDocs, addDoc, deleteDoc,
+    query, orderBy, onSnapshot, serverTimestamp
+  };
+
+  // Signal that Firebase is ready
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
 <style>
   :root {
     --blue: #1a6fc4;
@@ -146,23 +178,15 @@
   .replies-names { display: flex; flex-wrap: wrap; gap: 8px; }
   .reply-chip { background: #fff; border: 1.5px solid #fcd34d; border-radius: 99px; padding: 4px 14px; font-size: 13px; font-weight: 700; color: var(--amber); }
   .send-status { font-size: 12px; text-align: center; margin-top: 8px; min-height: 18px; font-weight: 600; }
-
-  /* THREAD ACTIONS ROW */
-  .thread-actions {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 16px;
-  }
+  .thread-actions { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
   .thread-actions .card-title { margin-bottom: 0; }
   .delete-thread-btn {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 6px 12px; border-radius: 8px; border: 1.5px solid var(--red);
     background: #fff; color: var(--red); font-family: 'Nunito', sans-serif;
-    font-size: 12px; font-weight: 700; cursor: pointer;
-    transition: background .12s;
+    font-size: 12px; font-weight: 700; cursor: pointer; transition: background .12s;
   }
   .delete-thread-btn:hover { background: var(--red-light); }
-
-  /* CONFIRM MODAL */
   .modal-overlay {
     display: none; position: fixed; inset: 0;
     background: rgba(28,35,64,0.45); z-index: 100;
@@ -179,6 +203,13 @@
   .modal p { font-size: 14px; color: var(--gray-text); margin-bottom: 22px; line-height: 1.5; }
   .modal-btns { display: flex; gap: 10px; }
   .modal-btns .btn { margin: 0; }
+  /* Loading spinner */
+  .spinner {
+    width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin .7s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -257,7 +288,7 @@
       <div id="s-logged-as" class="logged-as"></div>
       <div class="card-title"><span class="dot"></span> My Messages with Mr. O</div>
       <div class="thread" id="s-thread">
-        <div class="empty-thread">No messages yet. Say hello to Mr. O! 👋</div>
+        <div class="empty-thread">Loading messages...</div>
       </div>
       <div class="divider"></div>
       <label for="s-compose">New message</label>
@@ -288,7 +319,7 @@
   <div id="sec-teacher-inbox" class="section">
     <div class="card">
       <div class="card-title"><span class="dot"></span> Student Inbox</div>
-      <div class="student-list" id="t-student-list"></div>
+      <div class="student-list" id="t-student-list"><div class="empty-thread">Loading...</div></div>
       <button class="btn btn-red" onclick="teacherLogout()">Sign Out</button>
     </div>
   </div>
@@ -296,12 +327,12 @@
   <!-- TEACHER THREAD -->
   <div id="sec-teacher-thread" class="section">
     <div class="card">
-      <button class="back-link" onclick="showSection('sec-teacher-inbox'); renderTeacherList()">← Back to inbox</button>
+      <button class="back-link" onclick="backToInbox()">← Back to inbox</button>
       <div class="thread-actions">
         <div class="card-title" style="margin-bottom:0"><span class="dot"></span><span id="t-thread-title">Conversation</span></div>
         <button class="delete-thread-btn" onclick="confirmDelete()">🗑 Clear thread</button>
       </div>
-      <div class="thread" id="t-thread"></div>
+      <div class="thread" id="t-thread"><div class="empty-thread">Loading...</div></div>
       <div class="divider"></div>
       <label for="t-compose">Reply to student</label>
       <textarea id="t-compose" placeholder="Type your reply..."></textarea>
@@ -316,7 +347,7 @@
   <div class="modal">
     <div class="modal-icon">🗑️</div>
     <h3>Clear this thread?</h3>
-    <p id="delete-modal-msg">This will permanently delete all messages in this conversation for both you and the student. This cannot be undone.</p>
+    <p id="delete-modal-msg">This will permanently delete all messages in this conversation for both you and the student.</p>
     <div class="modal-btns">
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
       <button class="btn btn-red-solid" onclick="deleteThread()">Yes, clear it</button>
@@ -325,6 +356,7 @@
 </div>
 
 <script>
+// ── Config ──────────────────────────────────────────────────────
 emailjs.init("AUDEK7uDEOCKHLqAC");
 const EMAILJS_SERVICE  = "service_swzbcmh";
 const EMAILJS_TEMPLATE = "template_4fdltzm";
@@ -352,29 +384,86 @@ const ROSTER = {
   "Ulerio-Jimenez, Adrian":   "10061117"
 };
 
-let currentStudent = null;
+// ── State ────────────────────────────────────────────────────────
+let currentStudent       = null;
 let teacherActiveStudent = null;
+let studentUnsub         = null;  // Firestore listener unsubscribe
+let teacherUnsub         = null;
+let teacherInboxUnsub    = null;
+let fbReady              = false;
 
-function loadMessages() {
-  try { return JSON.parse(localStorage.getItem('mro_messages') || '{}'); } catch(e) { return {}; }
-}
-function saveMessages(db) {
-  localStorage.setItem('mro_messages', JSON.stringify(db));
+// ── Wait for Firebase ────────────────────────────────────────────
+window.addEventListener('firebase-ready', () => {
+  fbReady = true;
+  renderRepliesBoard();
+});
+
+// ── Helpers ──────────────────────────────────────────────────────
+function fb() { return window._fb; }
+
+function studentKey(name) {
+  // Firestore collection key: sanitize name
+  return name.replace(/[^a-zA-Z0-9-_]/g, '_');
 }
 
+function msgColRef(name) {
+  const { db, collection } = fb();
+  return collection(db, 'threads', studentKey(name), 'messages');
+}
+
+function escHtml(t) {
+  if (!t) return '';
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function fmtTimestamp(ts) {
+  if (!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const date = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return `${date} · ${time}`;
+}
+
+function bubbleHTML(m, senderLabel, isTeacher) {
+  const wrapClass   = isTeacher ? 'from-teacher' : 'from-student';
+  const bubbleClass = isTeacher ? 'teacher-bubble' : 'student-bubble';
+  const timeStr     = m.createdAt ? fmtTimestamp(m.createdAt) : (m.localTime || '');
+  return `<div class="bubble-wrap ${wrapClass}">
+    <div class="bubble ${bubbleClass}">${escHtml(m.text)}</div>
+    <div class="bubble-meta">${escHtml(senderLabel)}${timeStr ? ' &middot; ' + timeStr : ''}</div>
+  </div>`;
+}
+
+function scrollThread(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollTop = el.scrollHeight;
+}
+
+// ── Navigation ───────────────────────────────────────────────────
 function showSection(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if (id === 'sec-landing') renderRepliesBoard();
 }
 
-// ---- REPLIES BOARD ----
-function renderRepliesBoard() {
-  const db = loadMessages();
-  const waiting = Object.keys(ROSTER).filter(name =>
-    (db[name] || []).some(m => m.from === 'teacher' && !m.studentRead)
-  );
-  const board = document.getElementById('replies-board');
+// ── Replies Board ────────────────────────────────────────────────
+async function renderRepliesBoard() {
+  if (!fbReady) return;
+  const { db, collection, getDocs, query, orderBy } = fb();
+  const names   = Object.keys(ROSTER);
+  const waiting = [];
+
+  for (const name of names) {
+    const col  = msgColRef(name);
+    const snap = await getDocs(col);
+    const hasPending = snap.docs.some(d => {
+      const data = d.data();
+      return data.from === 'teacher' && !data.studentRead;
+    });
+    if (hasPending) waiting.push(name);
+  }
+
+  const board   = document.getElementById('replies-board');
   const chipsEl = document.getElementById('replies-names');
   if (!waiting.length) { board.style.display = 'none'; return; }
   board.style.display = 'block';
@@ -384,7 +473,7 @@ function renderRepliesBoard() {
   }).join('');
 }
 
-// ---- STUDENT LOGIN ----
+// ── Student Login ────────────────────────────────────────────────
 function studentLogin() {
   const name = document.getElementById('s-select-name').value;
   const num  = document.getElementById('s-number').value.trim();
@@ -396,100 +485,173 @@ function studentLogin() {
 
   currentStudent = name;
   document.getElementById('s-number').value = '';
-
-  const db = loadMessages();
-  (db[name] || []).forEach(m => { if (m.from === 'teacher') m.studentRead = true; });
-  saveMessages(db);
-
   const first = name.split(',')[1]?.trim() || name;
   document.getElementById('s-logged-as').textContent = `Signed in as: ${first}`;
   document.getElementById('s-send-status').textContent = '';
-  renderStudentThread();
   showSection('sec-student-msg');
+  listenStudentThread();
 }
 
 function studentLogout() {
+  if (studentUnsub) { studentUnsub(); studentUnsub = null; }
   currentStudent = null;
   document.getElementById('s-select-name').value = '';
   showSection('sec-landing');
 }
 
-function renderStudentThread() {
-  const db = loadMessages();
-  const msgs = db[currentStudent] || [];
-  const el = document.getElementById('s-thread');
-  if (!msgs.length) { el.innerHTML = '<div class="empty-thread">No messages yet. Say hello to Mr. O! 👋</div>'; return; }
-  el.innerHTML = msgs.map(m => bubbleHTML(m, m.from === 'teacher' ? 'Mr. O' : 'You', m.from === 'teacher')).join('');
-  el.scrollTop = el.scrollHeight;
-}
+// ── Student Thread (real-time) ───────────────────────────────────
+function listenStudentThread() {
+  if (studentUnsub) studentUnsub();
+  const { query, orderBy, onSnapshot } = fb();
+  const col = msgColRef(currentStudent);
+  const q   = query(col, orderBy('createdAt', 'asc'));
 
-function studentSend() {
-  const text = document.getElementById('s-compose').value.trim();
-  if (!text) return;
-  const btn = document.getElementById('s-send-btn');
-  const status = document.getElementById('s-send-status');
-  btn.disabled = true;
-  btn.textContent = 'Sending...';
-  status.textContent = '';
+  document.getElementById('s-thread').innerHTML = '<div class="empty-thread">Loading…</div>';
 
-  const db = loadMessages();
-  if (!db[currentStudent]) db[currentStudent] = [];
-  const ts = nowStamp();
-  db[currentStudent].push({ from: 'student', text, time: ts.time, date: ts.date });
-  saveMessages(db);
-  document.getElementById('s-compose').value = '';
-  renderStudentThread();
+  studentUnsub = onSnapshot(q, async (snap) => {
+    const el = document.getElementById('s-thread');
+    if (!el || !currentStudent) return;
 
-  const firstName = currentStudent.split(',')[1]?.trim() || currentStudent;
-  emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
-    student_name: firstName,
-    message: text,
-    sent_time: `${ts.date} at ${ts.time}`,
-    to_email: TEACHER_EMAIL
-  }).then(() => {
-    status.style.color = 'var(--green)';
-    status.textContent = '✓ Message sent to Mr. O!';
-  }).catch(() => {
-    status.style.color = 'var(--amber)';
-    status.textContent = 'Message saved. Notification may be delayed.';
-  }).finally(() => {
-    btn.disabled = false;
-    btn.textContent = 'Send Message ✉️';
+    const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Mark teacher messages as student-read
+    const { db, doc, getDocs: gd } = fb();
+    for (const m of msgs) {
+      if (m.from === 'teacher' && !m.studentRead) {
+        const { updateDoc } = await import("https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js");
+        const ref = doc(db, 'threads', studentKey(currentStudent), 'messages', m.id);
+        updateDoc(ref, { studentRead: true }).catch(() => {});
+      }
+    }
+
+    if (!msgs.length) {
+      el.innerHTML = '<div class="empty-thread">No messages yet. Say hello to Mr. O! 👋</div>';
+      return;
+    }
+    el.innerHTML = msgs.map(m => bubbleHTML(m, m.from === 'teacher' ? 'Mr. O' : 'You', m.from === 'teacher')).join('');
+    scrollThread('s-thread');
   });
 }
 
-// ---- TEACHER LOGIN ----
+async function studentSend() {
+  const text = document.getElementById('s-compose').value.trim();
+  if (!text || !currentStudent) return;
+  const btn    = document.getElementById('s-send-btn');
+  const status = document.getElementById('s-send-status');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Sending…';
+  status.textContent = '';
+
+  try {
+    const { addDoc, serverTimestamp } = fb();
+    await addDoc(msgColRef(currentStudent), {
+      from: 'student',
+      text,
+      createdAt: serverTimestamp(),
+      studentRead: true
+    });
+    document.getElementById('s-compose').value = '';
+
+    const firstName = currentStudent.split(',')[1]?.trim() || currentStudent;
+    const now = new Date();
+    const timeStr = `${now.toLocaleDateString([],{month:'short',day:'numeric'})} at ${now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;
+
+    emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+      student_name: firstName,
+      message: text,
+      sent_time: timeStr,
+      to_email: TEACHER_EMAIL
+    }).then(() => {
+      status.style.color = 'var(--green)';
+      status.textContent = '✓ Message sent to Mr. O!';
+    }).catch(() => {
+      status.style.color = 'var(--amber)';
+      status.textContent = 'Message saved. Email notification may be delayed.';
+    });
+
+    status.style.color = 'var(--green)';
+    status.textContent = '✓ Message sent!';
+  } catch(e) {
+    status.style.color = 'var(--red)';
+    status.textContent = 'Error sending. Please try again.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Message ✉️';
+  }
+}
+
+// ── Teacher Login ────────────────────────────────────────────────
 function teacherLogin() {
   const pin = document.getElementById('t-pin-input').value;
   const err = document.getElementById('t-pin-error');
   err.style.display = 'none';
   if (pin !== TEACHER_PIN) { err.style.display = 'block'; return; }
   document.getElementById('t-pin-input').value = '';
-  renderTeacherList();
+  showSection('sec-teacher-inbox');
+  listenTeacherInbox();
+}
+
+function teacherLogout() {
+  if (teacherInboxUnsub) { teacherInboxUnsub(); teacherInboxUnsub = null; }
+  if (teacherUnsub)      { teacherUnsub(); teacherUnsub = null; }
+  showSection('sec-landing');
+}
+
+function backToInbox() {
+  if (teacherUnsub) { teacherUnsub(); teacherUnsub = null; }
   showSection('sec-teacher-inbox');
 }
 
-function teacherLogout() { showSection('sec-landing'); }
+// ── Teacher Inbox (real-time) ────────────────────────────────────
+function listenTeacherInbox() {
+  // We'll do a live refresh by listening to each student's collection
+  // For simplicity, poll on snapshot of all students
+  const names = Object.keys(ROSTER);
+  let loaded  = {};
 
-function renderTeacherList() {
-  const db = loadMessages();
+  // Load all threads once, then listen for changes
+  async function refresh() {
+    const { query, orderBy, getDocs } = fb();
+    const results = {};
+    for (const name of names) {
+      const col  = msgColRef(name);
+      const q    = query(col, orderBy('createdAt', 'asc'));
+      const snap = await getDocs(q);
+      results[name] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    renderTeacherInboxList(results);
+  }
+  refresh();
+
+  // Re-refresh every 10 seconds while teacher inbox is open
+  const interval = setInterval(() => {
+    if (document.getElementById('sec-teacher-inbox').classList.contains('active')) {
+      refresh();
+    } else {
+      clearInterval(interval);
+    }
+  }, 10000);
+}
+
+function renderTeacherInboxList(data) {
   const names = Object.keys(ROSTER);
   const sorted = [...names].sort((a, b) => {
-    const ua = (db[a] || []).filter(m => m.from === 'student' && !m.read).length;
-    const ub = (db[b] || []).filter(m => m.from === 'student' && !m.read).length;
+    const ua = (data[a] || []).filter(m => m.from === 'student' && !m.read).length;
+    const ub = (data[b] || []).filter(m => m.from === 'student' && !m.read).length;
     if (ua !== ub) return ub - ua;
-    const ha = (db[a] || []).length > 0 ? 0 : 1;
-    const hb = (db[b] || []).length > 0 ? 0 : 1;
+    const ha = (data[a] || []).length > 0 ? 0 : 1;
+    const hb = (data[b] || []).length > 0 ? 0 : 1;
     if (ha !== hb) return ha - hb;
     return a.localeCompare(b);
   });
 
-  document.getElementById('t-student-list').innerHTML = sorted.map(name => {
-    const msgs = db[name] || [];
-    const last = msgs[msgs.length - 1];
+  const el = document.getElementById('t-student-list');
+  el.innerHTML = sorted.map(name => {
+    const msgs   = data[name] || [];
+    const last   = msgs[msgs.length - 1];
     const unread = msgs.filter(m => m.from === 'student' && !m.read).length;
     const preview = last ? last.text.substring(0, 48) + (last.text.length > 48 ? '...' : '') : 'No messages yet';
-    const timeStr = last ? `${last.date || ''} · ${last.time || ''}`.trim().replace(/^·\s*/, '') : '';
+    const timeStr = last && last.createdAt ? fmtTimestamp(last.createdAt) : '';
     const badge = unread > 0
       ? `<span class="badge unread">${unread} new</span>`
       : (msgs.length ? `<span class="badge">${msgs.length}</span>` : '');
@@ -504,43 +666,66 @@ function renderTeacherList() {
   }).join('');
 }
 
+// ── Teacher Thread (real-time) ───────────────────────────────────
 function openStudentThread(name) {
   teacherActiveStudent = name;
-  const db = loadMessages();
-  (db[name] || []).forEach(m => { if (m.from === 'student') m.read = true; });
-  saveMessages(db);
   document.getElementById('t-thread-title').textContent = name;
-  renderTeacherThread();
   showSection('sec-teacher-thread');
+  listenTeacherThread();
 }
 
-function renderTeacherThread() {
-  const db = loadMessages();
-  const msgs = db[teacherActiveStudent] || [];
-  const el = document.getElementById('t-thread');
-  if (!msgs.length) { el.innerHTML = '<div class="empty-thread">No messages in this conversation yet.</div>'; return; }
-  const firstName = teacherActiveStudent.split(',')[1]?.trim() || teacherActiveStudent;
-  el.innerHTML = msgs.map(m => bubbleHTML(m, m.from === 'teacher' ? 'Mr. O' : firstName, m.from === 'teacher')).join('');
-  el.scrollTop = el.scrollHeight;
+function listenTeacherThread() {
+  if (teacherUnsub) teacherUnsub();
+  const { query, orderBy, onSnapshot } = fb();
+  const col = msgColRef(teacherActiveStudent);
+  const q   = query(col, orderBy('createdAt', 'asc'));
+
+  document.getElementById('t-thread').innerHTML = '<div class="empty-thread">Loading…</div>';
+
+  teacherUnsub = onSnapshot(q, async (snap) => {
+    const el = document.getElementById('t-thread');
+    if (!el) return;
+    const msgs      = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const firstName = teacherActiveStudent.split(',')[1]?.trim() || teacherActiveStudent;
+
+    // Mark student messages as teacher-read
+    const { db, doc } = fb();
+    for (const m of msgs) {
+      if (m.from === 'student' && !m.read) {
+        const { updateDoc } = await import("https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js");
+        const ref = doc(db, 'threads', studentKey(teacherActiveStudent), 'messages', m.id);
+        updateDoc(ref, { read: true }).catch(() => {});
+      }
+    }
+
+    if (!msgs.length) {
+      el.innerHTML = '<div class="empty-thread">No messages in this conversation yet.</div>';
+      return;
+    }
+    el.innerHTML = msgs.map(m => bubbleHTML(m, m.from === 'teacher' ? 'Mr. O' : firstName, m.from === 'teacher')).join('');
+    scrollThread('t-thread');
+  });
 }
 
-function teacherSend() {
+async function teacherSend() {
   const text = document.getElementById('t-compose').value.trim();
   if (!text || !teacherActiveStudent) return;
-  const db = loadMessages();
-  if (!db[teacherActiveStudent]) db[teacherActiveStudent] = [];
-  const ts = nowStamp();
-  db[teacherActiveStudent].push({ from: 'teacher', text, time: ts.time, date: ts.date, studentRead: false });
-  saveMessages(db);
+  const { addDoc, serverTimestamp } = fb();
+  await addDoc(msgColRef(teacherActiveStudent), {
+    from: 'teacher',
+    text,
+    createdAt: serverTimestamp(),
+    studentRead: false,
+    read: true
+  });
   document.getElementById('t-compose').value = '';
-  renderTeacherThread();
 }
 
-// ---- DELETE THREAD ----
+// ── Delete Thread ────────────────────────────────────────────────
 function confirmDelete() {
   const firstName = teacherActiveStudent ? (teacherActiveStudent.split(',')[1]?.trim() || teacherActiveStudent) : 'this student';
   document.getElementById('delete-modal-msg').textContent =
-    `This will permanently delete all messages between you and ${firstName} for both of you. This cannot be undone.`;
+    `This will permanently delete all messages between you and ${firstName}. This cannot be undone.`;
   document.getElementById('delete-modal').classList.add('open');
 }
 
@@ -548,46 +733,21 @@ function closeModal() {
   document.getElementById('delete-modal').classList.remove('open');
 }
 
-function deleteThread() {
+async function deleteThread() {
   if (!teacherActiveStudent) return;
-  const db = loadMessages();
-  db[teacherActiveStudent] = [];
-  saveMessages(db);
   closeModal();
-  renderTeacherThread();
-  renderTeacherList();
+  const { getDocs, deleteDoc, query, orderBy } = fb();
+  const col  = msgColRef(teacherActiveStudent);
+  const q    = query(col, orderBy('createdAt', 'asc'));
+  const snap = await getDocs(q);
+  const dels = snap.docs.map(d => deleteDoc(d.ref));
+  await Promise.all(dels);
+  // Thread listener will automatically refresh to empty state
 }
 
-// Close modal if clicking outside
 document.getElementById('delete-modal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
-
-// ---- HELPERS ----
-function bubbleHTML(m, senderLabel, isTeacher) {
-  const wrapClass = isTeacher ? 'from-teacher' : 'from-student';
-  const bubbleClass = isTeacher ? 'teacher-bubble' : 'student-bubble';
-  const timeDisplay = [m.date, m.time].filter(Boolean).join(' · ');
-  return `<div class="bubble-wrap ${wrapClass}">
-    <div class="bubble ${bubbleClass}">${escHtml(m.text)}</div>
-    <div class="bubble-meta">${escHtml(senderLabel)}${timeDisplay ? ' &middot; ' + timeDisplay : ''}</div>
-  </div>`;
-}
-
-function escHtml(t) {
-  if (!t) return '';
-  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function nowStamp() {
-  const now = new Date();
-  return {
-    time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    date: now.toLocaleDateString([], { month: 'short', day: 'numeric' })
-  };
-}
-
-renderRepliesBoard();
 </script>
 </body>
 </html>
