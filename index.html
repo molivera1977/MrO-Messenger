@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mr. O's Messenger</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Nunito+Sans:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<style>
+  :root {
+    --blue: #1a6fc4;
+    --blue-light: #e8f2fc;
+    --blue-mid: #b8d4f0;
+    --green: #1e9e6b;
+    --green-light: #e5f7f0;
+    --red: #c0392b;
+    --red-light: #fdecea;
+    --amber: #d97706;
+    --amber-light: #fef3c7;
+    --gray-bg: #f2f4f8;
+    --gray-border: #dde2ec;
+    --gray-text: #6b7590;
+    --dark: #1c2340;
+    --white: #ffffff;
+    --radius: 14px;
+    --shadow: 0 4px 20px rgba(26,111,196,0.10);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Nunito Sans', sans-serif;
+    background: var(--gray-bg);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 0 0 40px;
+  }
+  .site-header {
+    width: 100%; background: var(--blue);
+    padding: 18px 32px; display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 2px 12px rgba(26,111,196,0.18); margin-bottom: 36px;
+  }
+  .site-header .icon {
+    width: 44px; height: 44px; background: rgba(255,255,255,0.18);
+    border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px;
+  }
+  .site-header h1 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 22px; color: #fff; letter-spacing: -0.3px; }
+  .site-header p { font-size: 13px; color: rgba(255,255,255,0.75); margin-top: 1px; }
+  .container { width: 100%; max-width: 520px; padding: 0 16px; }
+  .card {
+    background: var(--white); border-radius: var(--radius);
+    box-shadow: var(--shadow); border: 1px solid var(--gray-border);
+    padding: 28px 28px 24px; margin-bottom: 20px;
+  }
+  .card-title {
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 17px;
+    color: var(--dark); margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+  }
+  .card-title .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--blue); display: inline-block; }
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--gray-text); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+  select, input[type="text"], input[type="password"], textarea {
+    width: 100%; padding: 11px 14px; border: 1.5px solid var(--gray-border);
+    border-radius: 10px; font-family: 'Nunito Sans', sans-serif;
+    font-size: 15px; color: var(--dark); background: var(--gray-bg);
+    margin-bottom: 16px; transition: border-color .15s, box-shadow .15s; outline: none;
+  }
+  select:focus, input:focus, textarea:focus {
+    border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,111,196,0.10); background: #fff;
+  }
+  textarea { resize: vertical; min-height: 90px; }
+  .btn {
+    width: 100%; padding: 13px; border-radius: 10px; border: none;
+    font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: transform .1s, box-shadow .15s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-blue { background: var(--blue); color: #fff; box-shadow: 0 4px 14px rgba(26,111,196,0.25); }
+  .btn-blue:hover:not(:disabled) { box-shadow: 0 6px 18px rgba(26,111,196,0.32); }
+  .btn-outline { background: #fff; color: var(--blue); border: 1.5px solid var(--blue); }
+  .btn-outline:hover { background: var(--blue-light); }
+  .btn-red { background: #fff; color: var(--red); border: 1.5px solid var(--red); margin-top: 10px; }
+  .btn-red:hover { background: var(--red-light); }
+  .btn-red-solid { background: var(--red); color: #fff; border: none; }
+  .btn-red-solid:hover { background: #a93226; }
+  .alert { padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 14px; display: none; }
+  .alert-error { background: var(--red-light); color: var(--red); }
+  .thread {
+    display: flex; flex-direction: column; gap: 10px;
+    max-height: 340px; overflow-y: auto; margin-bottom: 16px; padding-right: 4px;
+  }
+  .thread::-webkit-scrollbar { width: 4px; }
+  .thread::-webkit-scrollbar-thumb { background: var(--gray-border); border-radius: 4px; }
+  .bubble-wrap { display: flex; flex-direction: column; }
+  .bubble-wrap.from-teacher { align-items: flex-end; }
+  .bubble-wrap.from-student { align-items: flex-start; }
+  .bubble { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.55; }
+  .bubble.teacher-bubble { background: var(--blue); color: #fff; border-bottom-right-radius: 4px; }
+  .bubble.student-bubble { background: var(--blue-light); color: var(--dark); border-bottom-left-radius: 4px; }
+  .bubble-meta { font-size: 11px; color: var(--gray-text); margin-top: 3px; padding: 0 4px; }
+  .empty-thread { text-align: center; padding: 30px 0; color: var(--gray-text); font-size: 14px; }
+  .student-list { display: flex; flex-direction: column; gap: 6px; }
+  .student-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; border-radius: 10px; cursor: pointer;
+    border: 1.5px solid transparent; transition: background .12s, border-color .12s;
+  }
+  .student-row:hover { background: var(--blue-light); border-color: var(--blue-mid); }
+  .student-row .s-name { font-weight: 700; font-size: 14px; color: var(--dark); }
+  .student-row .s-preview { font-size: 12px; color: var(--gray-text); margin-top: 2px; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .s-time { font-size: 11px; color: var(--gray-text); margin-top: 2px; }
+  .badge { background: var(--blue); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; min-width: 22px; text-align: center; white-space: nowrap; }
+  .badge.unread { background: var(--green); }
+  .back-link {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
+    font-weight: 600; color: var(--blue); cursor: pointer; margin-bottom: 16px;
+    background: none; border: none; padding: 0;
+  }
+  .back-link:hover { text-decoration: underline; }
+  .divider { height: 1px; background: var(--gray-border); margin: 16px 0; }
+  .pin-wrap { text-align: center; padding: 10px 0 4px; }
+  .pin-icon { font-size: 36px; margin-bottom: 12px; }
+  .pin-wrap h2 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 20px; color: var(--dark); margin-bottom: 6px; }
+  .pin-wrap p { font-size: 13px; color: var(--gray-text); margin-bottom: 20px; }
+  .pin-wrap input { max-width: 200px; text-align: center; letter-spacing: .2em; font-size: 20px; margin: 0 auto 16px; display: block; }
+  .logged-as { font-size: 12px; color: var(--gray-text); text-align: right; margin-bottom: -10px; margin-top: -14px; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .who-wrap { text-align: center; padding: 10px 0 4px; }
+  .who-wrap .icon { font-size: 38px; margin-bottom: 12px; }
+  .who-wrap h2 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 20px; color: var(--dark); margin-bottom: 6px; }
+  .who-wrap p { font-size: 13px; color: var(--gray-text); margin-bottom: 24px; }
+  .who-btns { display: flex; gap: 12px; }
+  .who-btn {
+    flex: 1; padding: 18px 10px; border-radius: var(--radius);
+    border: 2px solid var(--gray-border); background: var(--white);
+    cursor: pointer; font-family: 'Nunito', sans-serif; font-weight: 700;
+    font-size: 15px; color: var(--dark); text-align: center;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+  }
+  .who-btn:hover { border-color: var(--blue); background: var(--blue-light); box-shadow: 0 2px 10px rgba(26,111,196,0.12); }
+  .who-btn .who-icon { font-size: 28px; display: block; margin-bottom: 8px; }
+  .replies-board {
+    background: var(--amber-light); border: 1.5px solid #fcd34d;
+    border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px;
+  }
+  .replies-board-title { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 15px; color: var(--amber); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .replies-names { display: flex; flex-wrap: wrap; gap: 8px; }
+  .reply-chip { background: #fff; border: 1.5px solid #fcd34d; border-radius: 99px; padding: 4px 14px; font-size: 13px; font-weight: 700; color: var(--amber); }
+  .send-status { font-size: 12px; text-align: center; margin-top: 8px; min-height: 18px; font-weight: 600; }
+
+  /* THREAD ACTIONS ROW */
+  .thread-actions {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .thread-actions .card-title { margin-bottom: 0; }
+  .delete-thread-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 12px; border-radius: 8px; border: 1.5px solid var(--red);
+    background: #fff; color: var(--red); font-family: 'Nunito', sans-serif;
+    font-size: 12px; font-weight: 700; cursor: pointer;
+    transition: background .12s;
+  }
+  .delete-thread-btn:hover { background: var(--red-light); }
+
+  /* CONFIRM MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(28,35,64,0.45); z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--white); border-radius: var(--radius);
+    box-shadow: 0 8px 40px rgba(28,35,64,0.18);
+    padding: 28px 28px 24px; max-width: 360px; width: 90%; text-align: center;
+  }
+  .modal-icon { font-size: 34px; margin-bottom: 12px; }
+  .modal h3 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 18px; color: var(--dark); margin-bottom: 8px; }
+  .modal p { font-size: 14px; color: var(--gray-text); margin-bottom: 22px; line-height: 1.5; }
+  .modal-btns { display: flex; gap: 10px; }
+  .modal-btns .btn { margin: 0; }
+</style>
+</head>
+<body>
+
+<div class="site-header">
+  <div class="icon">✉️</div>
+  <div>
+    <h1>Mr. O's Messenger</h1>
+    <p>Jettie S. Tisdale Elementary — 4th Grade</p>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- LANDING -->
+  <div id="sec-landing" class="section active">
+    <div id="replies-board" class="replies-board" style="display:none">
+      <div class="replies-board-title">📬 Mr. O replied! Check your messages:</div>
+      <div class="replies-names" id="replies-names"></div>
+    </div>
+    <div class="card">
+      <div class="who-wrap">
+        <div class="icon">👋</div>
+        <h2>Welcome!</h2>
+        <p>Who is using the messenger today?</p>
+      </div>
+      <div class="who-btns">
+        <button class="who-btn" onclick="showSection('sec-student-login')">
+          <span class="who-icon">🎒</span>I'm a Student
+        </button>
+        <button class="who-btn" onclick="showSection('sec-teacher-pin')">
+          <span class="who-icon">🍎</span>I'm Mr. O
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STUDENT LOGIN -->
+  <div id="sec-student-login" class="section">
+    <div class="card">
+      <div class="card-title"><span class="dot"></span> Student Sign-In</div>
+      <div id="s-login-error" class="alert alert-error"></div>
+      <label for="s-select-name">Your name</label>
+      <select id="s-select-name">
+        <option value="">-- Select your name --</option>
+        <option value="Aquino-Perez, Steven">Aquino-Perez, Steven</option>
+        <option value="Camas-Alvarez, Mike">Camas-Alvarez, Mike</option>
+        <option value="Earle, Jeremiah">Earle, Jeremiah</option>
+        <option value="Felix, Chloe">Felix, Chloe</option>
+        <option value="Flores Marcos, Cornelio">Flores Marcos, Cornelio</option>
+        <option value="Gardner, Zy'iere">Gardner, Zy'iere</option>
+        <option value="Giraldo, Layla">Giraldo, Layla</option>
+        <option value="Lawrence, Lennox">Lawrence, Lennox</option>
+        <option value="Millet, Zion">Millet, Zion</option>
+        <option value="Michael, Mulan">Michael, Mulan</option>
+        <option value="Murillo Estrada, Kevin">Murillo Estrada, Kevin</option>
+        <option value="Romaniello, Kaylib">Romaniello, Kaylib</option>
+        <option value="Sanango-Quizhpi, Anthony">Sanango-Quizhpi, Anthony</option>
+        <option value="Santos-Bautista, Scarlet">Santos-Bautista, Scarlet</option>
+        <option value="Simpson, Jordyn">Simpson, Jordyn</option>
+        <option value="Torres, Aryana">Torres, Aryana</option>
+        <option value="Towns, Micah">Towns, Micah</option>
+        <option value="Ulerio-Jimenez, Adrian">Ulerio-Jimenez, Adrian</option>
+      </select>
+      <label for="s-number">Your student number</label>
+      <input type="password" id="s-number" placeholder="Enter your student number" maxlength="10"
+             onkeydown="if(event.key==='Enter')studentLogin()" />
+      <button class="btn btn-blue" onclick="studentLogin()">Sign In</button>
+      <button class="btn btn-outline" style="margin-top:10px" onclick="showSection('sec-landing')">← Back</button>
+    </div>
+  </div>
+
+  <!-- STUDENT MESSENGER -->
+  <div id="sec-student-msg" class="section">
+    <div class="card">
+      <div id="s-logged-as" class="logged-as"></div>
+      <div class="card-title"><span class="dot"></span> My Messages with Mr. O</div>
+      <div class="thread" id="s-thread">
+        <div class="empty-thread">No messages yet. Say hello to Mr. O! 👋</div>
+      </div>
+      <div class="divider"></div>
+      <label for="s-compose">New message</label>
+      <textarea id="s-compose" placeholder="Type your message to Mr. O..."></textarea>
+      <button class="btn btn-blue" id="s-send-btn" onclick="studentSend()">Send Message ✉️</button>
+      <div class="send-status" id="s-send-status"></div>
+      <button class="btn btn-red" onclick="studentLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- TEACHER PIN -->
+  <div id="sec-teacher-pin" class="section">
+    <div class="card">
+      <div class="pin-wrap">
+        <div class="pin-icon">🔐</div>
+        <h2>Teacher Login</h2>
+        <p>Enter your teacher PIN to access the inbox.</p>
+      </div>
+      <div id="t-pin-error" class="alert alert-error">Incorrect PIN. Try again.</div>
+      <input type="password" id="t-pin-input" placeholder="••••" maxlength="4"
+             onkeydown="if(event.key==='Enter')teacherLogin()" />
+      <button class="btn btn-blue" onclick="teacherLogin()">Login</button>
+      <button class="btn btn-outline" style="margin-top:10px" onclick="showSection('sec-landing')">← Back</button>
+    </div>
+  </div>
+
+  <!-- TEACHER INBOX -->
+  <div id="sec-teacher-inbox" class="section">
+    <div class="card">
+      <div class="card-title"><span class="dot"></span> Student Inbox</div>
+      <div class="student-list" id="t-student-list"></div>
+      <button class="btn btn-red" onclick="teacherLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- TEACHER THREAD -->
+  <div id="sec-teacher-thread" class="section">
+    <div class="card">
+      <button class="back-link" onclick="showSection('sec-teacher-inbox'); renderTeacherList()">← Back to inbox</button>
+      <div class="thread-actions">
+        <div class="card-title" style="margin-bottom:0"><span class="dot"></span><span id="t-thread-title">Conversation</span></div>
+        <button class="delete-thread-btn" onclick="confirmDelete()">🗑 Clear thread</button>
+      </div>
+      <div class="thread" id="t-thread"></div>
+      <div class="divider"></div>
+      <label for="t-compose">Reply to student</label>
+      <textarea id="t-compose" placeholder="Type your reply..."></textarea>
+      <button class="btn btn-blue" onclick="teacherSend()">Send Reply ✉️</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal">
+    <div class="modal-icon">🗑️</div>
+    <h3>Clear this thread?</h3>
+    <p id="delete-modal-msg">This will permanently delete all messages in this conversation for both you and the student. This cannot be undone.</p>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-red-solid" onclick="deleteThread()">Yes, clear it</button>
+    </div>
+  </div>
+</div>
+
+<script>
+emailjs.init("AUDEK7uDEOCKHLqAC");
+const EMAILJS_SERVICE  = "service_swzbcmh";
+const EMAILJS_TEMPLATE = "template_4fdltzm";
+const TEACHER_EMAIL    = "molivera@bridgeportedu.net";
+const TEACHER_PIN      = "9377";
+
+const ROSTER = {
+  "Aquino-Perez, Steven":     "10048814",
+  "Camas-Alvarez, Mike":      "10060436",
+  "Earle, Jeremiah":          "10038362",
+  "Felix, Chloe":             "10065242",
+  "Flores Marcos, Cornelio":  "10037877",
+  "Gardner, Zy'iere":         "10057389",
+  "Giraldo, Layla":           "10053382",
+  "Lawrence, Lennox":         "10045050",
+  "Millet, Zion":             "10053340",
+  "Michael, Mulan":           "10051762",
+  "Murillo Estrada, Kevin":   "10065967",
+  "Romaniello, Kaylib":       "10041081",
+  "Sanango-Quizhpi, Anthony": "10065990",
+  "Santos-Bautista, Scarlet": "10062436",
+  "Simpson, Jordyn":          "10045306",
+  "Torres, Aryana":           "10053178",
+  "Towns, Micah":             "10043892",
+  "Ulerio-Jimenez, Adrian":   "10061117"
+};
+
+let currentStudent = null;
+let teacherActiveStudent = null;
+
+function loadMessages() {
+  try { return JSON.parse(localStorage.getItem('mro_messages') || '{}'); } catch(e) { return {}; }
+}
+function saveMessages(db) {
+  localStorage.setItem('mro_messages', JSON.stringify(db));
+}
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'sec-landing') renderRepliesBoard();
+}
+
+// ---- REPLIES BOARD ----
+function renderRepliesBoard() {
+  const db = loadMessages();
+  const waiting = Object.keys(ROSTER).filter(name =>
+    (db[name] || []).some(m => m.from === 'teacher' && !m.studentRead)
+  );
+  const board = document.getElementById('replies-board');
+  const chipsEl = document.getElementById('replies-names');
+  if (!waiting.length) { board.style.display = 'none'; return; }
+  board.style.display = 'block';
+  chipsEl.innerHTML = waiting.map(name => {
+    const first = name.split(',')[1]?.trim() || name;
+    return `<div class="reply-chip">📬 ${first}</div>`;
+  }).join('');
+}
+
+// ---- STUDENT LOGIN ----
+function studentLogin() {
+  const name = document.getElementById('s-select-name').value;
+  const num  = document.getElementById('s-number').value.trim();
+  const err  = document.getElementById('s-login-error');
+  err.style.display = 'none';
+  if (!name) { err.textContent = 'Please select your name first.'; err.style.display = 'block'; return; }
+  if (!num)  { err.textContent = 'Please enter your student number.'; err.style.display = 'block'; return; }
+  if (ROSTER[name] !== num) { err.textContent = "That student number doesn't match. Try again!"; err.style.display = 'block'; return; }
+
+  currentStudent = name;
+  document.getElementById('s-number').value = '';
+
+  const db = loadMessages();
+  (db[name] || []).forEach(m => { if (m.from === 'teacher') m.studentRead = true; });
+  saveMessages(db);
+
+  const first = name.split(',')[1]?.trim() || name;
+  document.getElementById('s-logged-as').textContent = `Signed in as: ${first}`;
+  document.getElementById('s-send-status').textContent = '';
+  renderStudentThread();
+  showSection('sec-student-msg');
+}
+
+function studentLogout() {
+  currentStudent = null;
+  document.getElementById('s-select-name').value = '';
+  showSection('sec-landing');
+}
+
+function renderStudentThread() {
+  const db = loadMessages();
+  const msgs = db[currentStudent] || [];
+  const el = document.getElementById('s-thread');
+  if (!msgs.length) { el.innerHTML = '<div class="empty-thread">No messages yet. Say hello to Mr. O! 👋</div>'; return; }
+  el.innerHTML = msgs.map(m => bubbleHTML(m, m.from === 'teacher' ? 'Mr. O' : 'You', m.from === 'teacher')).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function studentSend() {
+  const text = document.getElementById('s-compose').value.trim();
+  if (!text) return;
+  const btn = document.getElementById('s-send-btn');
+  const status = document.getElementById('s-send-status');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  status.textContent = '';
+
+  const db = loadMessages();
+  if (!db[currentStudent]) db[currentStudent] = [];
+  const ts = nowStamp();
+  db[currentStudent].push({ from: 'student', text, time: ts.time, date: ts.date });
+  saveMessages(db);
+  document.getElementById('s-compose').value = '';
+  renderStudentThread();
+
+  const firstName = currentStudent.split(',')[1]?.trim() || currentStudent;
+  emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+    student_name: firstName,
+    message: text,
+    sent_time: `${ts.date} at ${ts.time}`,
+    to_email: TEACHER_EMAIL
+  }).then(() => {
+    status.style.color = 'var(--green)';
+    status.textContent = '✓ Message sent to Mr. O!';
+  }).catch(() => {
+    status.style.color = 'var(--amber)';
+    status.textContent = 'Message saved. Notification may be delayed.';
+  }).finally(() => {
+    btn.disabled = false;
+    btn.textContent = 'Send Message ✉️';
+  });
+}
+
+// ---- TEACHER LOGIN ----
+function teacherLogin() {
+  const pin = document.getElementById('t-pin-input').value;
+  const err = document.getElementById('t-pin-error');
+  err.style.display = 'none';
+  if (pin !== TEACHER_PIN) { err.style.display = 'block'; return; }
+  document.getElementById('t-pin-input').value = '';
+  renderTeacherList();
+  showSection('sec-teacher-inbox');
+}
+
+function teacherLogout() { showSection('sec-landing'); }
+
+function renderTeacherList() {
+  const db = loadMessages();
+  const names = Object.keys(ROSTER);
+  const sorted = [...names].sort((a, b) => {
+    const ua = (db[a] || []).filter(m => m.from === 'student' && !m.read).length;
+    const ub = (db[b] || []).filter(m => m.from === 'student' && !m.read).length;
+    if (ua !== ub) return ub - ua;
+    const ha = (db[a] || []).length > 0 ? 0 : 1;
+    const hb = (db[b] || []).length > 0 ? 0 : 1;
+    if (ha !== hb) return ha - hb;
+    return a.localeCompare(b);
+  });
+
+  document.getElementById('t-student-list').innerHTML = sorted.map(name => {
+    const msgs = db[name] || [];
+    const last = msgs[msgs.length - 1];
+    const unread = msgs.filter(m => m.from === 'student' && !m.read).length;
+    const preview = last ? last.text.substring(0, 48) + (last.text.length > 48 ? '...' : '') : 'No messages yet';
+    const timeStr = last ? `${last.date || ''} · ${last.time || ''}`.trim().replace(/^·\s*/, '') : '';
+    const badge = unread > 0
+      ? `<span class="badge unread">${unread} new</span>`
+      : (msgs.length ? `<span class="badge">${msgs.length}</span>` : '');
+    return `<div class="student-row" onclick="openStudentThread('${name.replace(/'/g,"\\'")}')">
+      <div style="flex:1;min-width:0">
+        <div class="s-name">${escHtml(name)}</div>
+        <div class="s-preview">${escHtml(preview)}</div>
+        ${timeStr ? `<div class="s-time">${timeStr}</div>` : ''}
+      </div>
+      <div style="margin-left:10px;flex-shrink:0">${badge}</div>
+    </div>`;
+  }).join('');
+}
+
+function openStudentThread(name) {
+  teacherActiveStudent = name;
+  const db = loadMessages();
+  (db[name] || []).forEach(m => { if (m.from === 'student') m.read = true; });
+  saveMessages(db);
+  document.getElementById('t-thread-title').textContent = name;
+  renderTeacherThread();
+  showSection('sec-teacher-thread');
+}
+
+function renderTeacherThread() {
+  const db = loadMessages();
+  const msgs = db[teacherActiveStudent] || [];
+  const el = document.getElementById('t-thread');
+  if (!msgs.length) { el.innerHTML = '<div class="empty-thread">No messages in this conversation yet.</div>'; return; }
+  const firstName = teacherActiveStudent.split(',')[1]?.trim() || teacherActiveStudent;
+  el.innerHTML = msgs.map(m => bubbleHTML(m, m.from === 'teacher' ? 'Mr. O' : firstName, m.from === 'teacher')).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function teacherSend() {
+  const text = document.getElementById('t-compose').value.trim();
+  if (!text || !teacherActiveStudent) return;
+  const db = loadMessages();
+  if (!db[teacherActiveStudent]) db[teacherActiveStudent] = [];
+  const ts = nowStamp();
+  db[teacherActiveStudent].push({ from: 'teacher', text, time: ts.time, date: ts.date, studentRead: false });
+  saveMessages(db);
+  document.getElementById('t-compose').value = '';
+  renderTeacherThread();
+}
+
+// ---- DELETE THREAD ----
+function confirmDelete() {
+  const firstName = teacherActiveStudent ? (teacherActiveStudent.split(',')[1]?.trim() || teacherActiveStudent) : 'this student';
+  document.getElementById('delete-modal-msg').textContent =
+    `This will permanently delete all messages between you and ${firstName} for both of you. This cannot be undone.`;
+  document.getElementById('delete-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('delete-modal').classList.remove('open');
+}
+
+function deleteThread() {
+  if (!teacherActiveStudent) return;
+  const db = loadMessages();
+  db[teacherActiveStudent] = [];
+  saveMessages(db);
+  closeModal();
+  renderTeacherThread();
+  renderTeacherList();
+}
+
+// Close modal if clicking outside
+document.getElementById('delete-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ---- HELPERS ----
+function bubbleHTML(m, senderLabel, isTeacher) {
+  const wrapClass = isTeacher ? 'from-teacher' : 'from-student';
+  const bubbleClass = isTeacher ? 'teacher-bubble' : 'student-bubble';
+  const timeDisplay = [m.date, m.time].filter(Boolean).join(' · ');
+  return `<div class="bubble-wrap ${wrapClass}">
+    <div class="bubble ${bubbleClass}">${escHtml(m.text)}</div>
+    <div class="bubble-meta">${escHtml(senderLabel)}${timeDisplay ? ' &middot; ' + timeDisplay : ''}</div>
+  </div>`;
+}
+
+function escHtml(t) {
+  if (!t) return '';
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function nowStamp() {
+  const now = new Date();
+  return {
+    time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    date: now.toLocaleDateString([], { month: 'short', day: 'numeric' })
+  };
+}
+
+renderRepliesBoard();
+</script>
+</body>
+</html>
