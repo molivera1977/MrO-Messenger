@@ -7,34 +7,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Nunito+Sans:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
-<!-- Firebase -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
   import {
     getFirestore, collection, doc, getDocs, addDoc, deleteDoc,
-    query, orderBy, onSnapshot, serverTimestamp
+    query, orderBy, onSnapshot, serverTimestamp, updateDoc, writeBatch
   } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-  const firebaseConfig = {
+  const app = initializeApp({
     apiKey: "AIzaSyCxHYSrEK4JTye6n0u-Wf3IesIB85-5fgc",
     authDomain: "mr-os-messenger.firebaseapp.com",
     projectId: "mr-os-messenger",
     storageBucket: "mr-os-messenger.firebasestorage.app",
     messagingSenderId: "639284932622",
     appId: "1:639284932622:web:c450a5bc7be58841c0cc5f"
-  };
+  });
 
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
-
-  // ── Expose Firebase helpers to window so non-module code can call them ──
   window._fb = {
-    db,
+    db: getFirestore(app),
     collection, doc, getDocs, addDoc, deleteDoc,
-    query, orderBy, onSnapshot, serverTimestamp
+    query, orderBy, onSnapshot, serverTimestamp, updateDoc, writeBatch
   };
-
-  // Signal that Firebase is ready
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
 
@@ -49,6 +42,7 @@
     --red-light: #fdecea;
     --amber: #d97706;
     --amber-light: #fef3c7;
+    --amber-border: #fcd34d;
     --gray-bg: #f2f4f8;
     --gray-border: #dde2ec;
     --gray-text: #6b7590;
@@ -65,41 +59,84 @@
     display: flex; flex-direction: column; align-items: center;
     padding: 0 0 40px;
   }
+
+  /* HEADER */
   .site-header {
     width: 100%; background: var(--blue);
-    padding: 18px 32px; display: flex; align-items: center; gap: 14px;
+    padding: 20px 40px; display: flex; align-items: center; gap: 16px;
     box-shadow: 0 2px 12px rgba(26,111,196,0.18); margin-bottom: 36px;
   }
   .site-header .icon {
-    width: 44px; height: 44px; background: rgba(255,255,255,0.18);
-    border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px;
+    width: 52px; height: 52px; background: rgba(255,255,255,0.18);
+    border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px;
   }
-  .site-header h1 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 22px; color: #fff; letter-spacing: -0.3px; }
-  .site-header p { font-size: 13px; color: rgba(255,255,255,0.75); margin-top: 1px; }
-  .container { width: 100%; max-width: 520px; padding: 0 16px; }
+  .site-header h1 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 24px; color: #fff; letter-spacing: -0.3px; }
+  .site-header p { font-size: 14px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+
+  /* LANDING BANNER */
+  .landing-banner {
+    width: 100%; max-width: 580px;
+    border-radius: var(--radius); padding: 22px 28px;
+    margin-bottom: 20px; text-align: center;
+    display: none;
+  }
+  .landing-banner.active {
+    display: block;
+    background: var(--amber-light);
+    border: 2px solid var(--amber-border);
+    animation: bannerPulse 2.2s ease-in-out infinite;
+  }
+  @keyframes bannerPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(252,211,77,0); }
+    50% { transform: scale(1.008); box-shadow: 0 0 0 8px rgba(252,211,77,0.18); }
+  }
+  .banner-emoji { font-size: 34px; display: block; margin-bottom: 8px; }
+  .banner-title { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 20px; color: #92400e; margin-bottom: 4px; }
+  .banner-sub { font-size: 15px; color: #b45309; }
+
+  /* CONTAINER */
+  .container { width: 100%; max-width: 580px; padding: 0 16px; }
+
+  /* CARD */
   .card {
     background: var(--white); border-radius: var(--radius);
     box-shadow: var(--shadow); border: 1px solid var(--gray-border);
-    padding: 28px 28px 24px; margin-bottom: 20px;
+    padding: 32px 36px 28px; margin-bottom: 20px;
   }
   .card-title {
-    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 17px;
-    color: var(--dark); margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 18px;
+    color: var(--dark); margin-bottom: 22px; display: flex; align-items: center; gap: 8px;
   }
   .card-title .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--blue); display: inline-block; }
-  label { display: block; font-size: 12px; font-weight: 600; color: var(--gray-text); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--gray-text); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
   select, input[type="text"], input[type="password"], textarea {
-    width: 100%; padding: 11px 14px; border: 1.5px solid var(--gray-border);
+    width: 100%; padding: 13px 16px; border: 1.5px solid var(--gray-border);
     border-radius: 10px; font-family: 'Nunito Sans', sans-serif;
     font-size: 15px; color: var(--dark); background: var(--gray-bg);
-    margin-bottom: 16px; transition: border-color .15s, box-shadow .15s; outline: none;
+    margin-bottom: 18px; transition: border-color .15s, box-shadow .15s; outline: none;
   }
   select:focus, input:focus, textarea:focus {
     border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,111,196,0.10); background: #fff;
   }
-  textarea { resize: vertical; min-height: 90px; }
+  textarea { resize: vertical; min-height: 96px; }
+
+  /* NAME INDICATOR */
+  .name-indicator {
+    border-radius: 10px; padding: 14px 18px; margin-bottom: 18px;
+    display: none; align-items: center; gap: 12px;
+  }
+  .name-indicator.waiting { background: var(--amber-light); border: 1.5px solid var(--amber-border); display: flex; animation: indPulse 1.8s ease-in-out infinite; }
+  .name-indicator.clear { background: var(--gray-bg); border: 0.5px solid var(--gray-border); display: flex; }
+  @keyframes indPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.01)} }
+  .ind-icon { font-size: 24px; flex-shrink: 0; }
+  .ind-text { font-size: 15px; font-weight: 700; font-family: 'Nunito', sans-serif; }
+  .ind-text.w { color: #92400e; }
+  .ind-text.c { color: var(--gray-text); }
+
+  /* BUTTONS */
   .btn {
-    width: 100%; padding: 13px; border-radius: 10px; border: none;
+    width: 100%; padding: 14px; border-radius: 10px; border: none;
     font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700;
     cursor: pointer; transition: transform .1s, box-shadow .15s;
   }
@@ -113,102 +150,109 @@
   .btn-red:hover { background: var(--red-light); }
   .btn-red-solid { background: var(--red); color: #fff; border: none; }
   .btn-red-solid:hover { background: #a93226; }
-  .alert { padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 14px; display: none; }
-  .alert-error { background: var(--red-light); color: var(--red); }
-  .thread {
-    display: flex; flex-direction: column; gap: 10px;
-    max-height: 340px; overflow-y: auto; margin-bottom: 16px; padding-right: 4px;
-  }
-  .thread::-webkit-scrollbar { width: 4px; }
-  .thread::-webkit-scrollbar-thumb { background: var(--gray-border); border-radius: 4px; }
-  .bubble-wrap { display: flex; flex-direction: column; }
-  .bubble-wrap.from-teacher { align-items: flex-end; }
-  .bubble-wrap.from-student { align-items: flex-start; }
-  .bubble { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.55; }
-  .bubble.teacher-bubble { background: var(--blue); color: #fff; border-bottom-right-radius: 4px; }
-  .bubble.student-bubble { background: var(--blue-light); color: var(--dark); border-bottom-left-radius: 4px; }
-  .bubble-meta { font-size: 11px; color: var(--gray-text); margin-top: 3px; padding: 0 4px; }
-  .empty-thread { text-align: center; padding: 30px 0; color: var(--gray-text); font-size: 14px; }
-  .student-list { display: flex; flex-direction: column; gap: 6px; }
-  .student-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 14px; border-radius: 10px; cursor: pointer;
-    border: 1.5px solid transparent; transition: background .12s, border-color .12s;
-  }
-  .student-row:hover { background: var(--blue-light); border-color: var(--blue-mid); }
-  .student-row .s-name { font-weight: 700; font-size: 14px; color: var(--dark); }
-  .student-row .s-preview { font-size: 12px; color: var(--gray-text); margin-top: 2px; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .s-time { font-size: 11px; color: var(--gray-text); margin-top: 2px; }
-  .badge { background: var(--blue); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; min-width: 22px; text-align: center; white-space: nowrap; }
-  .badge.unread { background: var(--green); }
-  .back-link {
-    display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
-    font-weight: 600; color: var(--blue); cursor: pointer; margin-bottom: 16px;
-    background: none; border: none; padding: 0;
-  }
-  .back-link:hover { text-decoration: underline; }
-  .divider { height: 1px; background: var(--gray-border); margin: 16px 0; }
-  .pin-wrap { text-align: center; padding: 10px 0 4px; }
-  .pin-icon { font-size: 36px; margin-bottom: 12px; }
-  .pin-wrap h2 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 20px; color: var(--dark); margin-bottom: 6px; }
-  .pin-wrap p { font-size: 13px; color: var(--gray-text); margin-bottom: 20px; }
-  .pin-wrap input { max-width: 200px; text-align: center; letter-spacing: .2em; font-size: 20px; margin: 0 auto 16px; display: block; }
-  .logged-as { font-size: 12px; color: var(--gray-text); text-align: right; margin-bottom: -10px; margin-top: -14px; }
-  .section { display: none; }
-  .section.active { display: block; }
-  .who-wrap { text-align: center; padding: 10px 0 4px; }
-  .who-wrap .icon { font-size: 38px; margin-bottom: 12px; }
-  .who-wrap h2 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 20px; color: var(--dark); margin-bottom: 6px; }
-  .who-wrap p { font-size: 13px; color: var(--gray-text); margin-bottom: 24px; }
+  .btn-amber { background: var(--amber-light); color: #92400e; border: 1.5px solid var(--amber-border); margin-top: 10px; }
+  .btn-amber:hover { background: #fde68a; }
+
+  /* WHO BUTTONS */
   .who-btns { display: flex; gap: 12px; }
   .who-btn {
-    flex: 1; padding: 18px 10px; border-radius: var(--radius);
+    flex: 1; padding: 20px 12px; border-radius: var(--radius);
     border: 2px solid var(--gray-border); background: var(--white);
     cursor: pointer; font-family: 'Nunito', sans-serif; font-weight: 700;
     font-size: 15px; color: var(--dark); text-align: center;
     transition: border-color .15s, background .15s, box-shadow .15s;
   }
   .who-btn:hover { border-color: var(--blue); background: var(--blue-light); box-shadow: 0 2px 10px rgba(26,111,196,0.12); }
-  .who-btn .who-icon { font-size: 28px; display: block; margin-bottom: 8px; }
-  .replies-board {
-    background: var(--amber-light); border: 1.5px solid #fcd34d;
-    border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px;
+  .who-btn .who-icon { font-size: 30px; display: block; margin-bottom: 8px; }
+
+  /* ALERT */
+  .alert { padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 14px; display: none; }
+  .alert-error { background: var(--red-light); color: var(--red); }
+
+  /* THREAD */
+  .thread {
+    display: flex; flex-direction: column; gap: 10px;
+    max-height: 360px; overflow-y: auto; margin-bottom: 16px; padding-right: 4px;
   }
-  .replies-board-title { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 15px; color: var(--amber); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-  .replies-names { display: flex; flex-wrap: wrap; gap: 8px; }
-  .reply-chip { background: #fff; border: 1.5px solid #fcd34d; border-radius: 99px; padding: 4px 14px; font-size: 13px; font-weight: 700; color: var(--amber); }
-  .send-status { font-size: 12px; text-align: center; margin-top: 8px; min-height: 18px; font-weight: 600; }
-  .thread-actions { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .thread::-webkit-scrollbar { width: 4px; }
+  .thread::-webkit-scrollbar-thumb { background: var(--gray-border); border-radius: 4px; }
+  .bubble-wrap { display: flex; flex-direction: column; }
+  .bubble-wrap.from-teacher { align-items: flex-end; }
+  .bubble-wrap.from-student { align-items: flex-start; }
+  .bubble { max-width: 80%; padding: 11px 15px; border-radius: 14px; font-size: 14px; line-height: 1.55; }
+  .bubble.teacher-bubble { background: var(--blue); color: #fff; border-bottom-right-radius: 4px; }
+  .bubble.student-bubble { background: var(--blue-light); color: var(--dark); border-bottom-left-radius: 4px; }
+  .bubble.broadcast-bubble { background: var(--amber-light); color: #92400e; border: 1px solid var(--amber-border); border-bottom-right-radius: 4px; }
+  .bubble-meta { font-size: 11px; color: var(--gray-text); margin-top: 3px; padding: 0 4px; }
+  .empty-thread { text-align: center; padding: 32px 0; color: var(--gray-text); font-size: 14px; }
+
+  /* STUDENT LIST */
+  .student-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .student-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 16px; border-radius: 10px; cursor: pointer;
+    border: 1.5px solid transparent; transition: background .12s, border-color .12s;
+  }
+  .student-row:hover { background: var(--blue-light); border-color: var(--blue-mid); }
+  .student-row .s-name { font-weight: 700; font-size: 14px; color: var(--dark); }
+  .student-row .s-preview { font-size: 12px; color: var(--gray-text); margin-top: 2px; max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .s-time { font-size: 11px; color: var(--gray-text); margin-top: 2px; }
+  .badge { background: var(--blue); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; min-width: 22px; text-align: center; white-space: nowrap; }
+  .badge.unread { background: var(--green); }
+
+  /* THREAD ACTIONS */
+  .thread-actions { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
   .thread-actions .card-title { margin-bottom: 0; }
-  .delete-thread-btn {
+  .delete-btn {
     display: inline-flex; align-items: center; gap: 5px;
-    padding: 6px 12px; border-radius: 8px; border: 1.5px solid var(--red);
+    padding: 7px 14px; border-radius: 8px; border: 1.5px solid var(--red);
     background: #fff; color: var(--red); font-family: 'Nunito', sans-serif;
     font-size: 12px; font-weight: 700; cursor: pointer; transition: background .12s;
   }
-  .delete-thread-btn:hover { background: var(--red-light); }
-  .modal-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(28,35,64,0.45); z-index: 100;
-    align-items: center; justify-content: center;
+  .delete-btn:hover { background: var(--red-light); }
+
+  /* OTHER */
+  .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--blue); cursor: pointer; margin-bottom: 18px; background: none; border: none; padding: 0; }
+  .back-link:hover { text-decoration: underline; }
+  .divider { height: 1px; background: var(--gray-border); margin: 18px 0; }
+  .logged-as { font-size: 12px; color: var(--gray-text); text-align: right; margin-bottom: -12px; margin-top: -16px; }
+  .send-status { font-size: 12px; text-align: center; margin-top: 8px; min-height: 18px; font-weight: 600; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* PIN */
+  .pin-wrap { text-align: center; padding: 10px 0 4px; }
+  .pin-icon { font-size: 38px; margin-bottom: 14px; }
+  .pin-wrap h2 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 22px; color: var(--dark); margin-bottom: 6px; }
+  .pin-wrap p { font-size: 14px; color: var(--gray-text); margin-bottom: 22px; }
+  .pin-wrap input { max-width: 200px; text-align: center; letter-spacing: .2em; font-size: 22px; margin: 0 auto 18px; display: block; }
+
+  /* WHO WRAP */
+  .who-wrap { text-align: center; padding: 10px 0 4px; }
+  .who-wrap .icon { font-size: 40px; margin-bottom: 14px; }
+  .who-wrap h2 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 22px; color: var(--dark); margin-bottom: 6px; }
+  .who-wrap p { font-size: 14px; color: var(--gray-text); margin-bottom: 26px; }
+
+  /* BROADCAST */
+  .broadcast-banner {
+    background: var(--amber-light); border: 1.5px solid var(--amber-border);
+    border-radius: 10px; padding: 14px 18px; margin-bottom: 16px;
+    font-size: 13px; font-weight: 700; color: #92400e;
+    display: flex; align-items: center; gap: 8px;
   }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(28,35,64,0.45); z-index: 100; align-items: center; justify-content: center; }
   .modal-overlay.open { display: flex; }
-  .modal {
-    background: var(--white); border-radius: var(--radius);
-    box-shadow: 0 8px 40px rgba(28,35,64,0.18);
-    padding: 28px 28px 24px; max-width: 360px; width: 90%; text-align: center;
-  }
-  .modal-icon { font-size: 34px; margin-bottom: 12px; }
-  .modal h3 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 18px; color: var(--dark); margin-bottom: 8px; }
-  .modal p { font-size: 14px; color: var(--gray-text); margin-bottom: 22px; line-height: 1.5; }
+  .modal { background: var(--white); border-radius: var(--radius); box-shadow: 0 8px 40px rgba(28,35,64,0.18); padding: 30px 30px 26px; max-width: 400px; width: 90%; text-align: center; }
+  .modal-icon { font-size: 36px; margin-bottom: 12px; }
+  .modal h3 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 19px; color: var(--dark); margin-bottom: 8px; }
+  .modal p { font-size: 14px; color: var(--gray-text); margin-bottom: 24px; line-height: 1.5; }
   .modal-btns { display: flex; gap: 10px; }
   .modal-btns .btn { margin: 0; }
-  /* Loading spinner */
-  .spinner {
-    width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: #fff; border-radius: 50%;
-    animation: spin .7s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px;
-  }
+
+  /* SPINNER */
+  .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
@@ -222,14 +266,18 @@
   </div>
 </div>
 
+<div style="width:100%;max-width:580px;padding:0 16px">
+  <div class="landing-banner" id="landing-banner">
+    <span class="banner-emoji">📬</span>
+    <div class="banner-title">Mr. O sent a message to some of his students!</div>
+    <div class="banner-sub">Log in to see if it's you!</div>
+  </div>
+</div>
+
 <div class="container">
 
   <!-- LANDING -->
   <div id="sec-landing" class="section active">
-    <div id="replies-board" class="replies-board" style="display:none">
-      <div class="replies-board-title">📬 Mr. O replied! Check your messages:</div>
-      <div class="replies-names" id="replies-names"></div>
-    </div>
     <div class="card">
       <div class="who-wrap">
         <div class="icon">👋</div>
@@ -253,7 +301,7 @@
       <div class="card-title"><span class="dot"></span> Student Sign-In</div>
       <div id="s-login-error" class="alert alert-error"></div>
       <label for="s-select-name">Your name</label>
-      <select id="s-select-name">
+      <select id="s-select-name" onchange="onNameSelect()">
         <option value="">-- Select your name --</option>
         <option value="Aquino-Perez, Steven">Aquino-Perez, Steven</option>
         <option value="Camas-Alvarez, Mike">Camas-Alvarez, Mike</option>
@@ -274,10 +322,18 @@
         <option value="Towns, Micah">Towns, Micah</option>
         <option value="Ulerio-Jimenez, Adrian">Ulerio-Jimenez, Adrian</option>
       </select>
-      <label for="s-number">Your student number</label>
-      <input type="password" id="s-number" placeholder="Enter your student number" maxlength="10"
-             onkeydown="if(event.key==='Enter')studentLogin()" />
-      <button class="btn btn-blue" onclick="studentLogin()">Sign In</button>
+
+      <div class="name-indicator" id="name-indicator">
+        <span class="ind-icon" id="ind-icon"></span>
+        <span class="ind-text" id="ind-text"></span>
+      </div>
+
+      <div id="s-num-section" style="display:none">
+        <label for="s-number">Your student number</label>
+        <input type="password" id="s-number" placeholder="Enter your student number" maxlength="10"
+               onkeydown="if(event.key==='Enter')studentLogin()" />
+        <button class="btn btn-blue" onclick="studentLogin()">Sign In</button>
+      </div>
       <button class="btn btn-outline" style="margin-top:10px" onclick="showSection('sec-landing')">← Back</button>
     </div>
   </div>
@@ -287,9 +343,7 @@
     <div class="card">
       <div id="s-logged-as" class="logged-as"></div>
       <div class="card-title"><span class="dot"></span> My Messages with Mr. O</div>
-      <div class="thread" id="s-thread">
-        <div class="empty-thread">Loading messages...</div>
-      </div>
+      <div class="thread" id="s-thread"><div class="empty-thread">Loading messages…</div></div>
       <div class="divider"></div>
       <label for="s-compose">New message</label>
       <textarea id="s-compose" placeholder="Type your message to Mr. O..."></textarea>
@@ -319,8 +373,22 @@
   <div id="sec-teacher-inbox" class="section">
     <div class="card">
       <div class="card-title"><span class="dot"></span> Student Inbox</div>
-      <div class="student-list" id="t-student-list"><div class="empty-thread">Loading...</div></div>
+      <div class="student-list" id="t-student-list"><div class="empty-thread">Loading…</div></div>
+      <button class="btn btn-amber" onclick="showBroadcast()">📢 Message All Students</button>
       <button class="btn btn-red" onclick="teacherLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- BROADCAST COMPOSE -->
+  <div id="sec-broadcast" class="section">
+    <div class="card">
+      <button class="back-link" onclick="showSection('sec-teacher-inbox')">← Back to inbox</button>
+      <div class="card-title"><span class="dot"></span> Message All Students</div>
+      <div class="broadcast-banner">📢 This message will appear in every student's private thread.</div>
+      <label for="bc-compose">Your message</label>
+      <textarea id="bc-compose" placeholder="Type your message to the whole class..."></textarea>
+      <button class="btn btn-blue" id="bc-send-btn" onclick="broadcastSend()">Send to All Students 📢</button>
+      <div class="send-status" id="bc-send-status"></div>
     </div>
   </div>
 
@@ -330,9 +398,9 @@
       <button class="back-link" onclick="backToInbox()">← Back to inbox</button>
       <div class="thread-actions">
         <div class="card-title" style="margin-bottom:0"><span class="dot"></span><span id="t-thread-title">Conversation</span></div>
-        <button class="delete-thread-btn" onclick="confirmDelete()">🗑 Clear thread</button>
+        <button class="delete-btn" onclick="confirmDelete()">🗑 Clear thread</button>
       </div>
-      <div class="thread" id="t-thread"><div class="empty-thread">Loading...</div></div>
+      <div class="thread" id="t-thread"><div class="empty-thread">Loading…</div></div>
       <div class="divider"></div>
       <label for="t-compose">Reply to student</label>
       <textarea id="t-compose" placeholder="Type your reply..."></textarea>
@@ -342,12 +410,12 @@
 
 </div>
 
-<!-- CONFIRM DELETE MODAL -->
+<!-- DELETE MODAL -->
 <div class="modal-overlay" id="delete-modal">
   <div class="modal">
     <div class="modal-icon">🗑️</div>
     <h3>Clear this thread?</h3>
-    <p id="delete-modal-msg">This will permanently delete all messages in this conversation for both you and the student.</p>
+    <p id="delete-modal-msg">This will permanently delete all messages in this conversation.</p>
     <div class="modal-btns">
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
       <button class="btn btn-red-solid" onclick="deleteThread()">Yes, clear it</button>
@@ -356,7 +424,7 @@
 </div>
 
 <script>
-// ── Config ──────────────────────────────────────────────────────
+// ── Config ──────────────────────────────────────
 emailjs.init("AUDEK7uDEOCKHLqAC");
 const EMAILJS_SERVICE  = "service_swzbcmh";
 const EMAILJS_TEMPLATE = "template_4fdltzm";
@@ -384,96 +452,105 @@ const ROSTER = {
   "Ulerio-Jimenez, Adrian":   "10061117"
 };
 
-// ── State ────────────────────────────────────────────────────────
+// ── State ────────────────────────────────────────
 let currentStudent       = null;
 let teacherActiveStudent = null;
-let studentUnsub         = null;  // Firestore listener unsubscribe
+let studentUnsub         = null;
 let teacherUnsub         = null;
-let teacherInboxUnsub    = null;
+let inboxRefreshTimer    = null;
 let fbReady              = false;
 
-// ── Wait for Firebase ────────────────────────────────────────────
 window.addEventListener('firebase-ready', () => {
   fbReady = true;
-  renderRepliesBoard();
+  renderLandingBanner();
 });
 
-// ── Helpers ──────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────
 function fb() { return window._fb; }
+function sKey(name) { return name.replace(/[^a-zA-Z0-9\-_]/g, '_'); }
+function msgCol(name) { const {db, collection} = fb(); return collection(db, 'threads', sKey(name), 'messages'); }
+function escHtml(t) { if(!t)return''; return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function firstName(name) { return name.split(',')[1]?.trim() || name; }
 
-function studentKey(name) {
-  // Firestore collection key: sanitize name
-  return name.replace(/[^a-zA-Z0-9-_]/g, '_');
-}
-
-function msgColRef(name) {
-  const { db, collection } = fb();
-  return collection(db, 'threads', studentKey(name), 'messages');
-}
-
-function escHtml(t) {
-  if (!t) return '';
-  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function fmtTimestamp(ts) {
+function fmtTs(ts) {
   if (!ts) return '';
   const d = ts.toDate ? ts.toDate() : new Date(ts);
-  const date = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  return `${date} · ${time}`;
+  return d.toLocaleDateString([],{month:'short',day:'numeric'}) + ' · ' + d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 }
 
-function bubbleHTML(m, senderLabel, isTeacher) {
+function nowStamp() {
+  const now = new Date();
+  return now.toLocaleDateString([],{month:'short',day:'numeric'}) + ' at ' + now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+
+function bubbleHTML(m, senderLabel, isTeacher, isBroadcast) {
   const wrapClass   = isTeacher ? 'from-teacher' : 'from-student';
-  const bubbleClass = isTeacher ? 'teacher-bubble' : 'student-bubble';
-  const timeStr     = m.createdAt ? fmtTimestamp(m.createdAt) : (m.localTime || '');
+  const bubbleClass = isBroadcast ? 'broadcast-bubble' : (isTeacher ? 'teacher-bubble' : 'student-bubble');
+  const timeStr     = m.createdAt ? fmtTs(m.createdAt) : '';
+  const broadcastTag = isBroadcast ? ' 📢' : '';
   return `<div class="bubble-wrap ${wrapClass}">
     <div class="bubble ${bubbleClass}">${escHtml(m.text)}</div>
-    <div class="bubble-meta">${escHtml(senderLabel)}${timeStr ? ' &middot; ' + timeStr : ''}</div>
+    <div class="bubble-meta">${escHtml(senderLabel)}${broadcastTag}${timeStr?' &middot; '+timeStr:''}</div>
   </div>`;
 }
 
-function scrollThread(id) {
-  const el = document.getElementById(id);
-  if (el) el.scrollTop = el.scrollHeight;
-}
+function scrollThread(id) { const el=document.getElementById(id); if(el) el.scrollTop=el.scrollHeight; }
 
-// ── Navigation ───────────────────────────────────────────────────
+// ── Navigation ───────────────────────────────────
 function showSection(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  if (id === 'sec-landing') renderRepliesBoard();
+  if (id === 'sec-landing') renderLandingBanner();
 }
 
-// ── Replies Board ────────────────────────────────────────────────
-async function renderRepliesBoard() {
+// ── Landing Banner ───────────────────────────────
+async function renderLandingBanner() {
   if (!fbReady) return;
-  const { db, collection, getDocs, query, orderBy } = fb();
-  const names   = Object.keys(ROSTER);
-  const waiting = [];
-
+  const { getDocs, query, orderBy } = fb();
+  const names  = Object.keys(ROSTER);
+  let hasAny   = false;
   for (const name of names) {
-    const col  = msgColRef(name);
-    const snap = await getDocs(col);
-    const hasPending = snap.docs.some(d => {
-      const data = d.data();
-      return data.from === 'teacher' && !data.studentRead;
-    });
-    if (hasPending) waiting.push(name);
+    const snap = await getDocs(msgCol(name));
+    if (snap.docs.some(d => { const data=d.data(); return data.from==='teacher' && !data.studentRead; })) {
+      hasAny = true; break;
+    }
   }
-
-  const board   = document.getElementById('replies-board');
-  const chipsEl = document.getElementById('replies-names');
-  if (!waiting.length) { board.style.display = 'none'; return; }
-  board.style.display = 'block';
-  chipsEl.innerHTML = waiting.map(name => {
-    const first = name.split(',')[1]?.trim() || name;
-    return `<div class="reply-chip">📬 ${first}</div>`;
-  }).join('');
+  const banner = document.getElementById('landing-banner');
+  banner.className = hasAny ? 'landing-banner active' : 'landing-banner';
 }
 
-// ── Student Login ────────────────────────────────────────────────
+// ── Name Indicator ───────────────────────────────
+async function onNameSelect() {
+  const name = document.getElementById('s-select-name').value;
+  const ind  = document.getElementById('name-indicator');
+  const ns   = document.getElementById('s-num-section');
+  document.getElementById('s-login-error').style.display = 'none';
+
+  if (!name) { ind.className = 'name-indicator'; ns.style.display = 'none'; return; }
+
+  ns.style.display = 'block';
+
+  if (!fbReady) { ind.className = 'name-indicator'; return; }
+
+  const { getDocs } = fb();
+  const snap    = await getDocs(msgCol(name));
+  const hasNew  = snap.docs.some(d => { const data=d.data(); return data.from==='teacher' && !data.studentRead; });
+  const first   = firstName(name);
+
+  if (hasNew) {
+    ind.className = 'name-indicator waiting';
+    document.getElementById('ind-icon').textContent = '📬';
+    document.getElementById('ind-text').className = 'ind-text w';
+    document.getElementById('ind-text').textContent = `Hey ${first}! You have a new message from Mr. O!`;
+  } else {
+    ind.className = 'name-indicator clear';
+    document.getElementById('ind-icon').textContent = '✅';
+    document.getElementById('ind-text').className = 'ind-text c';
+    document.getElementById('ind-text').textContent = `Hey ${first}! No new messages right now.`;
+  }
+}
+
+// ── Student Login ────────────────────────────────
 function studentLogin() {
   const name = document.getElementById('s-select-name').value;
   const num  = document.getElementById('s-number').value.trim();
@@ -485,9 +562,8 @@ function studentLogin() {
 
   currentStudent = name;
   document.getElementById('s-number').value = '';
-  const first = name.split(',')[1]?.trim() || name;
-  document.getElementById('s-logged-as').textContent = `Signed in as: ${first}`;
   document.getElementById('s-send-status').textContent = '';
+  document.getElementById('s-logged-as').textContent = `Signed in as: ${firstName(name)}`;
   showSection('sec-student-msg');
   listenStudentThread();
 }
@@ -496,39 +572,32 @@ function studentLogout() {
   if (studentUnsub) { studentUnsub(); studentUnsub = null; }
   currentStudent = null;
   document.getElementById('s-select-name').value = '';
+  document.getElementById('name-indicator').className = 'name-indicator';
+  document.getElementById('s-num-section').style.display = 'none';
   showSection('sec-landing');
 }
 
-// ── Student Thread (real-time) ───────────────────────────────────
+// ── Student Thread ───────────────────────────────
 function listenStudentThread() {
   if (studentUnsub) studentUnsub();
-  const { query, orderBy, onSnapshot } = fb();
-  const col = msgColRef(currentStudent);
-  const q   = query(col, orderBy('createdAt', 'asc'));
-
+  const { query, orderBy, onSnapshot, doc, updateDoc } = fb();
+  const q = query(msgCol(currentStudent), orderBy('createdAt','asc'));
   document.getElementById('s-thread').innerHTML = '<div class="empty-thread">Loading…</div>';
 
-  studentUnsub = onSnapshot(q, async (snap) => {
+  studentUnsub = onSnapshot(q, snap => {
     const el = document.getElementById('s-thread');
     if (!el || !currentStudent) return;
+    const msgs = snap.docs.map(d => ({id:d.id,...d.data()}));
 
-    const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    // Mark teacher messages as student-read
-    const { db, doc, getDocs: gd } = fb();
-    for (const m of msgs) {
+    msgs.forEach(m => {
       if (m.from === 'teacher' && !m.studentRead) {
-        const { updateDoc } = await import("https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js");
-        const ref = doc(db, 'threads', studentKey(currentStudent), 'messages', m.id);
-        updateDoc(ref, { studentRead: true }).catch(() => {});
+        const ref = doc(fb().db, 'threads', sKey(currentStudent), 'messages', m.id);
+        updateDoc(ref, {studentRead: true}).catch(()=>{});
       }
-    }
+    });
 
-    if (!msgs.length) {
-      el.innerHTML = '<div class="empty-thread">No messages yet. Say hello to Mr. O! 👋</div>';
-      return;
-    }
-    el.innerHTML = msgs.map(m => bubbleHTML(m, m.from === 'teacher' ? 'Mr. O' : 'You', m.from === 'teacher')).join('');
+    if (!msgs.length) { el.innerHTML = '<div class="empty-thread">No messages yet. Say hello to Mr. O! 👋</div>'; return; }
+    el.innerHTML = msgs.map(m => bubbleHTML(m, m.from==='teacher'?'Mr. O':'You', m.from==='teacher', m.broadcast)).join('');
     scrollThread('s-thread');
   });
 }
@@ -536,7 +605,7 @@ function listenStudentThread() {
 async function studentSend() {
   const text = document.getElementById('s-compose').value.trim();
   if (!text || !currentStudent) return;
-  const btn    = document.getElementById('s-send-btn');
+  const btn = document.getElementById('s-send-btn');
   const status = document.getElementById('s-send-status');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Sending…';
@@ -544,33 +613,18 @@ async function studentSend() {
 
   try {
     const { addDoc, serverTimestamp } = fb();
-    await addDoc(msgColRef(currentStudent), {
-      from: 'student',
-      text,
-      createdAt: serverTimestamp(),
-      studentRead: true
-    });
+    await addDoc(msgCol(currentStudent), { from:'student', text, createdAt:serverTimestamp(), studentRead:true });
     document.getElementById('s-compose').value = '';
 
-    const firstName = currentStudent.split(',')[1]?.trim() || currentStudent;
-    const now = new Date();
-    const timeStr = `${now.toLocaleDateString([],{month:'short',day:'numeric'})} at ${now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;
-
     emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
-      student_name: firstName,
+      student_name: firstName(currentStudent),
       message: text,
-      sent_time: timeStr,
+      sent_time: nowStamp(),
       to_email: TEACHER_EMAIL
-    }).then(() => {
-      status.style.color = 'var(--green)';
-      status.textContent = '✓ Message sent to Mr. O!';
-    }).catch(() => {
-      status.style.color = 'var(--amber)';
-      status.textContent = 'Message saved. Email notification may be delayed.';
-    });
+    }).catch(()=>{});
 
     status.style.color = 'var(--green)';
-    status.textContent = '✓ Message sent!';
+    status.textContent = '✓ Message sent to Mr. O!';
   } catch(e) {
     status.style.color = 'var(--red)';
     status.textContent = 'Error sending. Please try again.';
@@ -580,7 +634,7 @@ async function studentSend() {
   }
 }
 
-// ── Teacher Login ────────────────────────────────────────────────
+// ── Teacher Login ────────────────────────────────
 function teacherLogin() {
   const pin = document.getElementById('t-pin-input').value;
   const err = document.getElementById('t-pin-error');
@@ -588,86 +642,76 @@ function teacherLogin() {
   if (pin !== TEACHER_PIN) { err.style.display = 'block'; return; }
   document.getElementById('t-pin-input').value = '';
   showSection('sec-teacher-inbox');
-  listenTeacherInbox();
+  loadTeacherInbox();
 }
 
 function teacherLogout() {
-  if (teacherInboxUnsub) { teacherInboxUnsub(); teacherInboxUnsub = null; }
-  if (teacherUnsub)      { teacherUnsub(); teacherUnsub = null; }
+  if (teacherUnsub) { teacherUnsub(); teacherUnsub = null; }
+  if (inboxRefreshTimer) { clearInterval(inboxRefreshTimer); inboxRefreshTimer = null; }
   showSection('sec-landing');
 }
 
 function backToInbox() {
   if (teacherUnsub) { teacherUnsub(); teacherUnsub = null; }
   showSection('sec-teacher-inbox');
+  loadTeacherInbox();
 }
 
-// ── Teacher Inbox (real-time) ────────────────────────────────────
-function listenTeacherInbox() {
-  // We'll do a live refresh by listening to each student's collection
-  // For simplicity, poll on snapshot of all students
-  const names = Object.keys(ROSTER);
-  let loaded  = {};
+// ── Teacher Inbox ────────────────────────────────
+async function loadTeacherInbox() {
+  if (inboxRefreshTimer) clearInterval(inboxRefreshTimer);
+  await refreshInbox();
+  inboxRefreshTimer = setInterval(() => {
+    if (document.getElementById('sec-teacher-inbox').classList.contains('active')) refreshInbox();
+    else { clearInterval(inboxRefreshTimer); inboxRefreshTimer = null; }
+  }, 8000);
+}
 
-  // Load all threads once, then listen for changes
-  async function refresh() {
-    const { query, orderBy, getDocs } = fb();
-    const results = {};
-    for (const name of names) {
-      const col  = msgColRef(name);
-      const q    = query(col, orderBy('createdAt', 'asc'));
-      const snap = await getDocs(q);
-      results[name] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    }
-    renderTeacherInboxList(results);
+async function refreshInbox() {
+  const { getDocs, query, orderBy } = fb();
+  const names   = Object.keys(ROSTER);
+  const results = {};
+  for (const name of names) {
+    const snap = await getDocs(query(msgCol(name), orderBy('createdAt','asc')));
+    results[name] = snap.docs.map(d => ({id:d.id,...d.data()}));
   }
-  refresh();
-
-  // Re-refresh every 10 seconds while teacher inbox is open
-  const interval = setInterval(() => {
-    if (document.getElementById('sec-teacher-inbox').classList.contains('active')) {
-      refresh();
-    } else {
-      clearInterval(interval);
-    }
-  }, 10000);
+  renderInboxList(results);
 }
 
-function renderTeacherInboxList(data) {
-  const names = Object.keys(ROSTER);
-  const sorted = [...names].sort((a, b) => {
-    const ua = (data[a] || []).filter(m => m.from === 'student' && !m.read).length;
-    const ub = (data[b] || []).filter(m => m.from === 'student' && !m.read).length;
+function renderInboxList(data) {
+  const names  = Object.keys(ROSTER);
+  const sorted = [...names].sort((a,b) => {
+    const ua = (data[a]||[]).filter(m=>m.from==='student'&&!m.read).length;
+    const ub = (data[b]||[]).filter(m=>m.from==='student'&&!m.read).length;
     if (ua !== ub) return ub - ua;
-    const ha = (data[a] || []).length > 0 ? 0 : 1;
-    const hb = (data[b] || []).length > 0 ? 0 : 1;
+    const ha = (data[a]||[]).length > 0 ? 0 : 1;
+    const hb = (data[b]||[]).length > 0 ? 0 : 1;
     if (ha !== hb) return ha - hb;
     return a.localeCompare(b);
   });
 
-  const el = document.getElementById('t-student-list');
-  el.innerHTML = sorted.map(name => {
+  document.getElementById('t-student-list').innerHTML = sorted.map(name => {
     const msgs   = data[name] || [];
-    const last   = msgs[msgs.length - 1];
-    const unread = msgs.filter(m => m.from === 'student' && !m.read).length;
-    const preview = last ? last.text.substring(0, 48) + (last.text.length > 48 ? '...' : '') : 'No messages yet';
-    const timeStr = last && last.createdAt ? fmtTimestamp(last.createdAt) : '';
-    const badge = unread > 0
+    const last   = msgs[msgs.length-1];
+    const unread = msgs.filter(m=>m.from==='student'&&!m.read).length;
+    const preview= last ? last.text.substring(0,50)+(last.text.length>50?'...':'') : 'No messages yet';
+    const timeStr= last&&last.createdAt ? fmtTs(last.createdAt) : '';
+    const badge  = unread>0
       ? `<span class="badge unread">${unread} new</span>`
       : (msgs.length ? `<span class="badge">${msgs.length}</span>` : '');
-    return `<div class="student-row" onclick="openStudentThread('${name.replace(/'/g,"\\'")}')">
+    return `<div class="student-row" onclick="openThread('${name.replace(/'/g,"\\'")}')">
       <div style="flex:1;min-width:0">
         <div class="s-name">${escHtml(name)}</div>
         <div class="s-preview">${escHtml(preview)}</div>
-        ${timeStr ? `<div class="s-time">${timeStr}</div>` : ''}
+        ${timeStr?`<div class="s-time">${timeStr}</div>`:''}
       </div>
       <div style="margin-left:10px;flex-shrink:0">${badge}</div>
     </div>`;
   }).join('');
 }
 
-// ── Teacher Thread (real-time) ───────────────────────────────────
-function openStudentThread(name) {
+// ── Teacher Thread ───────────────────────────────
+function openThread(name) {
   teacherActiveStudent = name;
   document.getElementById('t-thread-title').textContent = name;
   showSection('sec-teacher-thread');
@@ -676,33 +720,25 @@ function openStudentThread(name) {
 
 function listenTeacherThread() {
   if (teacherUnsub) teacherUnsub();
-  const { query, orderBy, onSnapshot } = fb();
-  const col = msgColRef(teacherActiveStudent);
-  const q   = query(col, orderBy('createdAt', 'asc'));
-
+  const { query, orderBy, onSnapshot, doc, updateDoc } = fb();
+  const q = query(msgCol(teacherActiveStudent), orderBy('createdAt','asc'));
   document.getElementById('t-thread').innerHTML = '<div class="empty-thread">Loading…</div>';
 
-  teacherUnsub = onSnapshot(q, async (snap) => {
+  teacherUnsub = onSnapshot(q, snap => {
     const el = document.getElementById('t-thread');
     if (!el) return;
-    const msgs      = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const firstName = teacherActiveStudent.split(',')[1]?.trim() || teacherActiveStudent;
+    const msgs    = snap.docs.map(d => ({id:d.id,...d.data()}));
+    const first   = firstName(teacherActiveStudent);
 
-    // Mark student messages as teacher-read
-    const { db, doc } = fb();
-    for (const m of msgs) {
-      if (m.from === 'student' && !m.read) {
-        const { updateDoc } = await import("https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js");
-        const ref = doc(db, 'threads', studentKey(teacherActiveStudent), 'messages', m.id);
-        updateDoc(ref, { read: true }).catch(() => {});
+    msgs.forEach(m => {
+      if (m.from==='student' && !m.read) {
+        const ref = doc(fb().db,'threads',sKey(teacherActiveStudent),'messages',m.id);
+        updateDoc(ref,{read:true}).catch(()=>{});
       }
-    }
+    });
 
-    if (!msgs.length) {
-      el.innerHTML = '<div class="empty-thread">No messages in this conversation yet.</div>';
-      return;
-    }
-    el.innerHTML = msgs.map(m => bubbleHTML(m, m.from === 'teacher' ? 'Mr. O' : firstName, m.from === 'teacher')).join('');
+    if (!msgs.length) { el.innerHTML = '<div class="empty-thread">No messages in this conversation yet.</div>'; return; }
+    el.innerHTML = msgs.map(m => bubbleHTML(m, m.from==='teacher'?'Mr. O':first, m.from==='teacher', m.broadcast)).join('');
     scrollThread('t-thread');
   });
 }
@@ -711,43 +747,63 @@ async function teacherSend() {
   const text = document.getElementById('t-compose').value.trim();
   if (!text || !teacherActiveStudent) return;
   const { addDoc, serverTimestamp } = fb();
-  await addDoc(msgColRef(teacherActiveStudent), {
-    from: 'teacher',
-    text,
-    createdAt: serverTimestamp(),
-    studentRead: false,
-    read: true
+  await addDoc(msgCol(teacherActiveStudent), {
+    from:'teacher', text, createdAt:serverTimestamp(), studentRead:false, read:true, broadcast:false
   });
   document.getElementById('t-compose').value = '';
 }
 
-// ── Delete Thread ────────────────────────────────────────────────
+// ── Broadcast ────────────────────────────────────
+function showBroadcast() {
+  document.getElementById('bc-compose').value = '';
+  document.getElementById('bc-send-status').textContent = '';
+  showSection('sec-broadcast');
+}
+
+async function broadcastSend() {
+  const text = document.getElementById('bc-compose').value.trim();
+  if (!text) return;
+  const btn    = document.getElementById('bc-send-btn');
+  const status = document.getElementById('bc-send-status');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Sending to all students…';
+  status.textContent = '';
+
+  try {
+    const { addDoc, serverTimestamp } = fb();
+    const names = Object.keys(ROSTER);
+    const ts    = serverTimestamp();
+    await Promise.all(names.map(name =>
+      addDoc(msgCol(name), { from:'teacher', text, createdAt:ts, studentRead:false, read:true, broadcast:true })
+    ));
+    document.getElementById('bc-compose').value = '';
+    status.style.color = 'var(--green)';
+    status.textContent = `✓ Message sent to all ${names.length} students!`;
+  } catch(e) {
+    status.style.color = 'var(--red)';
+    status.textContent = 'Error sending. Please try again.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send to All Students 📢';
+  }
+}
+
+// ── Delete Thread ─────────────────────────────────
 function confirmDelete() {
-  const firstName = teacherActiveStudent ? (teacherActiveStudent.split(',')[1]?.trim() || teacherActiveStudent) : 'this student';
+  const first = teacherActiveStudent ? firstName(teacherActiveStudent) : 'this student';
   document.getElementById('delete-modal-msg').textContent =
-    `This will permanently delete all messages between you and ${firstName}. This cannot be undone.`;
+    `This will permanently delete all messages between you and ${first}. This cannot be undone.`;
   document.getElementById('delete-modal').classList.add('open');
 }
-
-function closeModal() {
-  document.getElementById('delete-modal').classList.remove('open');
-}
-
+function closeModal() { document.getElementById('delete-modal').classList.remove('open'); }
 async function deleteThread() {
   if (!teacherActiveStudent) return;
   closeModal();
   const { getDocs, deleteDoc, query, orderBy } = fb();
-  const col  = msgColRef(teacherActiveStudent);
-  const q    = query(col, orderBy('createdAt', 'asc'));
-  const snap = await getDocs(q);
-  const dels = snap.docs.map(d => deleteDoc(d.ref));
-  await Promise.all(dels);
-  // Thread listener will automatically refresh to empty state
+  const snap = await getDocs(query(msgCol(teacherActiveStudent), orderBy('createdAt','asc')));
+  await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
 }
-
-document.getElementById('delete-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
-});
+document.getElementById('delete-modal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
 </script>
 </body>
 </html>
