@@ -11,8 +11,11 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
   import {
     getFirestore, collection, doc, getDocs, addDoc, deleteDoc,
-    query, orderBy, onSnapshot, serverTimestamp, updateDoc, writeBatch
+    query, orderBy, onSnapshot, serverTimestamp, updateDoc
   } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+  import {
+    getStorage, ref, uploadBytes, getDownloadURL
+  } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js";
 
   const app = initializeApp({
     apiKey: "AIzaSyCxHYSrEK4JTye6n0u-Wf3IesIB85-5fgc",
@@ -25,8 +28,10 @@
 
   window._fb = {
     db: getFirestore(app),
+    storage: getStorage(app),
     collection, doc, getDocs, addDoc, deleteDoc,
-    query, orderBy, onSnapshot, serverTimestamp, updateDoc, writeBatch
+    query, orderBy, onSnapshot, serverTimestamp, updateDoc,
+    ref, uploadBytes, getDownloadURL
   };
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
@@ -37,7 +42,6 @@
     --blue-light: #e8f2fc;
     --blue-mid: #b8d4f0;
     --green: #1e9e6b;
-    --green-light: #e5f7f0;
     --red: #c0392b;
     --red-light: #fdecea;
     --amber: #d97706;
@@ -52,80 +56,32 @@
     --shadow: 0 4px 20px rgba(26,111,196,0.10);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Nunito Sans', sans-serif;
-    background: var(--gray-bg);
-    min-height: 100vh;
-    display: flex; flex-direction: column; align-items: center;
-    padding: 0 0 40px;
-  }
+  body { font-family: 'Nunito Sans', sans-serif; background: var(--gray-bg); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 0 0 40px; }
 
-  /* HEADER */
-  .site-header {
-    width: 100%; background: var(--blue);
-    padding: 20px 40px; display: flex; align-items: center; gap: 16px;
-    box-shadow: 0 2px 12px rgba(26,111,196,0.18); margin-bottom: 36px;
-  }
-  .site-header .icon {
-    width: 52px; height: 52px; background: rgba(255,255,255,0.18);
-    border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px;
-  }
+  .site-header { width: 100%; background: var(--blue); padding: 20px 40px; display: flex; align-items: center; gap: 16px; box-shadow: 0 2px 12px rgba(26,111,196,0.18); margin-bottom: 36px; }
+  .site-header .icon { width: 52px; height: 52px; background: rgba(255,255,255,0.18); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; }
   .site-header h1 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 24px; color: #fff; letter-spacing: -0.3px; }
   .site-header p { font-size: 14px; color: rgba(255,255,255,0.75); margin-top: 2px; }
 
-  /* LANDING BANNER */
-  .landing-banner {
-    width: 100%; max-width: 580px;
-    border-radius: var(--radius); padding: 22px 28px;
-    margin-bottom: 20px; text-align: center;
-    display: none;
-  }
-  .landing-banner.active {
-    display: block;
-    background: var(--amber-light);
-    border: 2px solid var(--amber-border);
-    animation: bannerPulse 2.2s ease-in-out infinite;
-  }
-  @keyframes bannerPulse {
-    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(252,211,77,0); }
-    50% { transform: scale(1.008); box-shadow: 0 0 0 8px rgba(252,211,77,0.18); }
-  }
+  .landing-banner { width: 100%; max-width: 580px; border-radius: var(--radius); padding: 22px 28px; margin-bottom: 20px; text-align: center; display: none; }
+  .landing-banner.active { display: block; background: var(--amber-light); border: 2px solid var(--amber-border); animation: bannerPulse 2.2s ease-in-out infinite; }
+  @keyframes bannerPulse { 0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(252,211,77,0)} 50%{transform:scale(1.008);box-shadow:0 0 0 8px rgba(252,211,77,0.18)} }
   .banner-emoji { font-size: 34px; display: block; margin-bottom: 8px; }
   .banner-title { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 20px; color: #92400e; margin-bottom: 4px; }
   .banner-sub { font-size: 15px; color: #b45309; }
 
-  /* CONTAINER */
   .container { width: 100%; max-width: 580px; padding: 0 16px; }
 
-  /* CARD */
-  .card {
-    background: var(--white); border-radius: var(--radius);
-    box-shadow: var(--shadow); border: 1px solid var(--gray-border);
-    padding: 32px 36px 28px; margin-bottom: 20px;
-  }
-  .card-title {
-    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 18px;
-    color: var(--dark); margin-bottom: 22px; display: flex; align-items: center; gap: 8px;
-  }
+  .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-border); padding: 32px 36px 28px; margin-bottom: 20px; }
+  .card-title { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 18px; color: var(--dark); margin-bottom: 22px; display: flex; align-items: center; gap: 8px; }
   .card-title .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--blue); display: inline-block; }
 
   label { display: block; font-size: 12px; font-weight: 600; color: var(--gray-text); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
-  select, input[type="text"], input[type="password"], textarea {
-    width: 100%; padding: 13px 16px; border: 1.5px solid var(--gray-border);
-    border-radius: 10px; font-family: 'Nunito Sans', sans-serif;
-    font-size: 15px; color: var(--dark); background: var(--gray-bg);
-    margin-bottom: 18px; transition: border-color .15s, box-shadow .15s; outline: none;
-  }
-  select:focus, input:focus, textarea:focus {
-    border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,111,196,0.10); background: #fff;
-  }
+  select, input[type="password"], textarea { width: 100%; padding: 13px 16px; border: 1.5px solid var(--gray-border); border-radius: 10px; font-family: 'Nunito Sans', sans-serif; font-size: 15px; color: var(--dark); background: var(--gray-bg); margin-bottom: 18px; transition: border-color .15s, box-shadow .15s; outline: none; }
+  select:focus, input:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,111,196,0.10); background: #fff; }
   textarea { resize: vertical; min-height: 96px; }
 
-  /* NAME INDICATOR */
-  .name-indicator {
-    border-radius: 10px; padding: 14px 18px; margin-bottom: 18px;
-    display: none; align-items: center; gap: 12px;
-  }
+  .name-indicator { border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; display: none; align-items: center; gap: 12px; }
   .name-indicator.waiting { background: var(--amber-light); border: 1.5px solid var(--amber-border); display: flex; animation: indPulse 1.8s ease-in-out infinite; }
   .name-indicator.clear { background: var(--gray-bg); border: 0.5px solid var(--gray-border); display: flex; }
   @keyframes indPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.01)} }
@@ -134,12 +90,7 @@
   .ind-text.w { color: #92400e; }
   .ind-text.c { color: var(--gray-text); }
 
-  /* BUTTONS */
-  .btn {
-    width: 100%; padding: 14px; border-radius: 10px; border: none;
-    font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700;
-    cursor: pointer; transition: transform .1s, box-shadow .15s;
-  }
+  .btn { width: 100%; padding: 14px; border-radius: 10px; border: none; font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: transform .1s, box-shadow .15s; }
   .btn:active { transform: scale(0.98); }
   .btn:disabled { opacity: 0.6; cursor: not-allowed; }
   .btn-blue { background: var(--blue); color: #fff; box-shadow: 0 4px 14px rgba(26,111,196,0.25); }
@@ -153,46 +104,47 @@
   .btn-amber { background: var(--amber-light); color: #92400e; border: 1.5px solid var(--amber-border); margin-top: 10px; }
   .btn-amber:hover { background: #fde68a; }
 
-  /* WHO BUTTONS */
   .who-btns { display: flex; gap: 12px; }
-  .who-btn {
-    flex: 1; padding: 20px 12px; border-radius: var(--radius);
-    border: 2px solid var(--gray-border); background: var(--white);
-    cursor: pointer; font-family: 'Nunito', sans-serif; font-weight: 700;
-    font-size: 15px; color: var(--dark); text-align: center;
-    transition: border-color .15s, background .15s, box-shadow .15s;
-  }
+  .who-btn { flex: 1; padding: 20px 12px; border-radius: var(--radius); border: 2px solid var(--gray-border); background: var(--white); cursor: pointer; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 15px; color: var(--dark); text-align: center; transition: border-color .15s, background .15s, box-shadow .15s; }
   .who-btn:hover { border-color: var(--blue); background: var(--blue-light); box-shadow: 0 2px 10px rgba(26,111,196,0.12); }
   .who-btn .who-icon { font-size: 30px; display: block; margin-bottom: 8px; }
 
-  /* ALERT */
   .alert { padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 14px; display: none; }
   .alert-error { background: var(--red-light); color: var(--red); }
 
-  /* THREAD */
-  .thread {
-    display: flex; flex-direction: column; gap: 10px;
-    max-height: 360px; overflow-y: auto; margin-bottom: 16px; padding-right: 4px;
-  }
+  .thread { display: flex; flex-direction: column; gap: 10px; max-height: 360px; overflow-y: auto; margin-bottom: 16px; padding-right: 4px; }
   .thread::-webkit-scrollbar { width: 4px; }
   .thread::-webkit-scrollbar-thumb { background: var(--gray-border); border-radius: 4px; }
   .bubble-wrap { display: flex; flex-direction: column; }
   .bubble-wrap.from-teacher { align-items: flex-end; }
   .bubble-wrap.from-student { align-items: flex-start; }
-  .bubble { max-width: 80%; padding: 11px 15px; border-radius: 14px; font-size: 14px; line-height: 1.55; }
+  .bubble { max-width: 82%; padding: 11px 15px; border-radius: 14px; font-size: 14px; line-height: 1.55; }
   .bubble.teacher-bubble { background: var(--blue); color: #fff; border-bottom-right-radius: 4px; }
   .bubble.student-bubble { background: var(--blue-light); color: var(--dark); border-bottom-left-radius: 4px; }
   .bubble.broadcast-bubble { background: var(--amber-light); color: #92400e; border: 1px solid var(--amber-border); border-bottom-right-radius: 4px; }
+  .bubble.image-bubble { background: transparent; padding: 0; border-radius: 12px; overflow: hidden; max-width: 82%; }
   .bubble-meta { font-size: 11px; color: var(--gray-text); margin-top: 3px; padding: 0 4px; }
+  .msg-image { max-width: 100%; max-height: 280px; border-radius: 12px; display: block; cursor: pointer; border: 1px solid var(--gray-border); }
+  .img-caption { background: var(--blue); color: #fff; padding: 8px 12px; border-radius: 0 0 12px 12px; font-size: 13px; margin-top: -4px; }
+  .img-caption.broadcast-caption { background: var(--amber-light); color: #92400e; border: 1px solid var(--amber-border); border-top: none; }
   .empty-thread { text-align: center; padding: 32px 0; color: var(--gray-text); font-size: 14px; }
 
-  /* STUDENT LIST */
+  /* COMPOSE AREA */
+  .compose-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 0; }
+  .compose-row textarea { margin-bottom: 0; flex: 1; min-height: 80px; }
+  .attach-btn { flex-shrink: 0; width: 52px; height: 52px; border-radius: 10px; border: 1.5px solid var(--gray-border); background: var(--gray-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: background .12s, border-color .12s; }
+  .attach-btn:hover { background: var(--blue-light); border-color: var(--blue); }
+
+  /* IMAGE PREVIEW */
+  .image-preview-wrap { margin-bottom: 12px; display: none; position: relative; display: inline-block; }
+  .image-preview-wrap img { max-height: 130px; border-radius: 10px; border: 1px solid var(--gray-border); display: block; }
+  .remove-preview { position: absolute; top: -8px; right: -8px; width: 24px; height: 24px; border-radius: 50%; background: var(--red); color: #fff; border: none; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+  /* BROADCAST COMPOSE */
+  .broadcast-info { background: var(--amber-light); border: 1.5px solid var(--amber-border); border-radius: 10px; padding: 14px 18px; margin-bottom: 16px; font-size: 13px; font-weight: 700; color: #92400e; display: flex; align-items: center; gap: 8px; }
+
   .student-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-  .student-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 13px 16px; border-radius: 10px; cursor: pointer;
-    border: 1.5px solid transparent; transition: background .12s, border-color .12s;
-  }
+  .student-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-radius: 10px; cursor: pointer; border: 1.5px solid transparent; transition: background .12s, border-color .12s; }
   .student-row:hover { background: var(--blue-light); border-color: var(--blue-mid); }
   .student-row .s-name { font-weight: 700; font-size: 14px; color: var(--dark); }
   .student-row .s-preview { font-size: 12px; color: var(--gray-text); margin-top: 2px; max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -200,48 +152,30 @@
   .badge { background: var(--blue); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; min-width: 22px; text-align: center; white-space: nowrap; }
   .badge.unread { background: var(--green); }
 
-  /* THREAD ACTIONS */
   .thread-actions { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
   .thread-actions .card-title { margin-bottom: 0; }
-  .delete-btn {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 7px 14px; border-radius: 8px; border: 1.5px solid var(--red);
-    background: #fff; color: var(--red); font-family: 'Nunito', sans-serif;
-    font-size: 12px; font-weight: 700; cursor: pointer; transition: background .12s;
-  }
+  .delete-btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: 8px; border: 1.5px solid var(--red); background: #fff; color: var(--red); font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: background .12s; }
   .delete-btn:hover { background: var(--red-light); }
 
-  /* OTHER */
   .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--blue); cursor: pointer; margin-bottom: 18px; background: none; border: none; padding: 0; }
   .back-link:hover { text-decoration: underline; }
   .divider { height: 1px; background: var(--gray-border); margin: 18px 0; }
   .logged-as { font-size: 12px; color: var(--gray-text); text-align: right; margin-bottom: -12px; margin-top: -16px; }
-  .send-status { font-size: 12px; text-align: center; margin-top: 8px; min-height: 18px; font-weight: 600; }
+  .send-status { font-size: 12px; text-align: center; margin-top: 10px; min-height: 18px; font-weight: 600; }
   .section { display: none; }
   .section.active { display: block; }
 
-  /* PIN */
   .pin-wrap { text-align: center; padding: 10px 0 4px; }
   .pin-icon { font-size: 38px; margin-bottom: 14px; }
   .pin-wrap h2 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 22px; color: var(--dark); margin-bottom: 6px; }
   .pin-wrap p { font-size: 14px; color: var(--gray-text); margin-bottom: 22px; }
   .pin-wrap input { max-width: 200px; text-align: center; letter-spacing: .2em; font-size: 22px; margin: 0 auto 18px; display: block; }
 
-  /* WHO WRAP */
   .who-wrap { text-align: center; padding: 10px 0 4px; }
   .who-wrap .icon { font-size: 40px; margin-bottom: 14px; }
   .who-wrap h2 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 22px; color: var(--dark); margin-bottom: 6px; }
   .who-wrap p { font-size: 14px; color: var(--gray-text); margin-bottom: 26px; }
 
-  /* BROADCAST */
-  .broadcast-banner {
-    background: var(--amber-light); border: 1.5px solid var(--amber-border);
-    border-radius: 10px; padding: 14px 18px; margin-bottom: 16px;
-    font-size: 13px; font-weight: 700; color: #92400e;
-    display: flex; align-items: center; gap: 8px;
-  }
-
-  /* MODAL */
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(28,35,64,0.45); z-index: 100; align-items: center; justify-content: center; }
   .modal-overlay.open { display: flex; }
   .modal { background: var(--white); border-radius: var(--radius); box-shadow: 0 8px 40px rgba(28,35,64,0.18); padding: 30px 30px 26px; max-width: 400px; width: 90%; text-align: center; }
@@ -251,9 +185,13 @@
   .modal-btns { display: flex; gap: 10px; }
   .modal-btns .btn { margin: 0; }
 
-  /* SPINNER */
+  .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 200; align-items: center; justify-content: center; cursor: pointer; }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 12px; }
+
   .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  input[type="file"] { display: none; }
 </style>
 </head>
 <body>
@@ -285,12 +223,8 @@
         <p>Who is using the messenger today?</p>
       </div>
       <div class="who-btns">
-        <button class="who-btn" onclick="showSection('sec-student-login')">
-          <span class="who-icon">🎒</span>I'm a Student
-        </button>
-        <button class="who-btn" onclick="showSection('sec-teacher-pin')">
-          <span class="who-icon">🍎</span>I'm Mr. O
-        </button>
+        <button class="who-btn" onclick="showSection('sec-student-login')"><span class="who-icon">🎒</span>I'm a Student</button>
+        <button class="who-btn" onclick="showSection('sec-teacher-pin')"><span class="who-icon">🍎</span>I'm Mr. O</button>
       </div>
     </div>
   </div>
@@ -303,35 +237,23 @@
       <label for="s-select-name">Your name</label>
       <select id="s-select-name" onchange="onNameSelect()">
         <option value="">-- Select your name --</option>
-        <option value="Aquino-Perez, Steven">Aquino-Perez, Steven</option>
-        <option value="Camas-Alvarez, Mike">Camas-Alvarez, Mike</option>
-        <option value="Earle, Jeremiah">Earle, Jeremiah</option>
-        <option value="Felix, Chloe">Felix, Chloe</option>
-        <option value="Flores Marcos, Cornelio">Flores Marcos, Cornelio</option>
-        <option value="Gardner, Zy'iere">Gardner, Zy'iere</option>
-        <option value="Giraldo, Layla">Giraldo, Layla</option>
-        <option value="Lawrence, Lennox">Lawrence, Lennox</option>
-        <option value="Millet, Zion">Millet, Zion</option>
-        <option value="Michael, Mulan">Michael, Mulan</option>
-        <option value="Murillo Estrada, Kevin">Murillo Estrada, Kevin</option>
-        <option value="Romaniello, Kaylib">Romaniello, Kaylib</option>
-        <option value="Sanango-Quizhpi, Anthony">Sanango-Quizhpi, Anthony</option>
-        <option value="Santos-Bautista, Scarlet">Santos-Bautista, Scarlet</option>
-        <option value="Simpson, Jordyn">Simpson, Jordyn</option>
-        <option value="Torres, Aryana">Torres, Aryana</option>
-        <option value="Towns, Micah">Towns, Micah</option>
-        <option value="Ulerio-Jimenez, Adrian">Ulerio-Jimenez, Adrian</option>
+        <option>Aquino-Perez, Steven</option><option>Camas-Alvarez, Mike</option>
+        <option>Earle, Jeremiah</option><option>Felix, Chloe</option>
+        <option>Flores Marcos, Cornelio</option><option>Gardner, Zy'iere</option>
+        <option>Giraldo, Layla</option><option>Lawrence, Lennox</option>
+        <option>Millet, Zion</option><option>Michael, Mulan</option>
+        <option>Murillo Estrada, Kevin</option><option>Romaniello, Kaylib</option>
+        <option>Sanango-Quizhpi, Anthony</option><option>Santos-Bautista, Scarlet</option>
+        <option>Simpson, Jordyn</option><option>Torres, Aryana</option>
+        <option>Towns, Micah</option><option>Ulerio-Jimenez, Adrian</option>
       </select>
-
       <div class="name-indicator" id="name-indicator">
         <span class="ind-icon" id="ind-icon"></span>
         <span class="ind-text" id="ind-text"></span>
       </div>
-
       <div id="s-num-section" style="display:none">
         <label for="s-number">Your student number</label>
-        <input type="password" id="s-number" placeholder="Enter your student number" maxlength="10"
-               onkeydown="if(event.key==='Enter')studentLogin()" />
+        <input type="password" id="s-number" placeholder="Enter your student number" maxlength="10" onkeydown="if(event.key==='Enter')studentLogin()" />
         <button class="btn btn-blue" onclick="studentLogin()">Sign In</button>
       </div>
       <button class="btn btn-outline" style="margin-top:10px" onclick="showSection('sec-landing')">← Back</button>
@@ -362,8 +284,7 @@
         <p>Enter your teacher PIN to access the inbox.</p>
       </div>
       <div id="t-pin-error" class="alert alert-error">Incorrect PIN. Try again.</div>
-      <input type="password" id="t-pin-input" placeholder="••••" maxlength="4"
-             onkeydown="if(event.key==='Enter')teacherLogin()" />
+      <input type="password" id="t-pin-input" placeholder="••••" maxlength="4" onkeydown="if(event.key==='Enter')teacherLogin()" />
       <button class="btn btn-blue" onclick="teacherLogin()">Login</button>
       <button class="btn btn-outline" style="margin-top:10px" onclick="showSection('sec-landing')">← Back</button>
     </div>
@@ -379,14 +300,26 @@
     </div>
   </div>
 
-  <!-- BROADCAST COMPOSE -->
+  <!-- BROADCAST -->
   <div id="sec-broadcast" class="section">
     <div class="card">
       <button class="back-link" onclick="showSection('sec-teacher-inbox')">← Back to inbox</button>
       <div class="card-title"><span class="dot"></span> Message All Students</div>
-      <div class="broadcast-banner">📢 This message will appear in every student's private thread.</div>
-      <label for="bc-compose">Your message</label>
-      <textarea id="bc-compose" placeholder="Type your message to the whole class..."></textarea>
+      <div class="broadcast-info">📢 This message will appear in every student's private thread.</div>
+
+      <!-- Broadcast image preview -->
+      <div id="bc-img-preview-wrap" style="display:none;margin-bottom:12px;position:relative;display:none">
+        <img id="bc-img-preview" src="" alt="preview" style="max-height:130px;border-radius:10px;border:1px solid var(--gray-border);display:block;" />
+        <button class="remove-preview" onclick="removeBcImage()">✕</button>
+      </div>
+
+      <label>Your message</label>
+      <div class="compose-row" style="margin-bottom:14px">
+        <textarea id="bc-compose" placeholder="Type your message to the whole class... (optional if sending an image)"></textarea>
+        <button class="attach-btn" title="Attach image to broadcast" onclick="document.getElementById('bc-img-input').click()">📎</button>
+      </div>
+      <input type="file" id="bc-img-input" accept="image/png,image/jpeg,image/gif,image/webp" onchange="onBcImageSelected(event)" />
+
       <button class="btn btn-blue" id="bc-send-btn" onclick="broadcastSend()">Send to All Students 📢</button>
       <div class="send-status" id="bc-send-status"></div>
     </div>
@@ -402,9 +335,22 @@
       </div>
       <div class="thread" id="t-thread"><div class="empty-thread">Loading…</div></div>
       <div class="divider"></div>
-      <label for="t-compose">Reply to student</label>
-      <textarea id="t-compose" placeholder="Type your reply..."></textarea>
-      <button class="btn btn-blue" onclick="teacherSend()">Send Reply ✉️</button>
+
+      <!-- Thread image preview -->
+      <div id="t-img-preview-wrap" style="display:none;margin-bottom:12px;position:relative;">
+        <img id="t-img-preview" src="" alt="preview" style="max-height:130px;border-radius:10px;border:1px solid var(--gray-border);display:block;" />
+        <button class="remove-preview" onclick="removeThreadImage()">✕</button>
+      </div>
+
+      <label>Reply to student</label>
+      <div class="compose-row" style="margin-bottom:14px">
+        <textarea id="t-compose" placeholder="Type your reply... (optional if sending an image)"></textarea>
+        <button class="attach-btn" title="Attach image" onclick="document.getElementById('t-img-input').click()">📎</button>
+      </div>
+      <input type="file" id="t-img-input" accept="image/png,image/jpeg,image/gif,image/webp" onchange="onThreadImageSelected(event)" />
+
+      <button class="btn btn-blue" id="t-send-btn" onclick="teacherSend()">Send Reply ✉️</button>
+      <div class="send-status" id="t-send-status"></div>
     </div>
   </div>
 
@@ -423,8 +369,12 @@
   </div>
 </div>
 
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="full size" />
+</div>
+
 <script>
-// ── Config ──────────────────────────────────────
 emailjs.init("AUDEK7uDEOCKHLqAC");
 const EMAILJS_SERVICE  = "service_swzbcmh";
 const EMAILJS_TEMPLATE = "template_4fdltzm";
@@ -432,277 +382,212 @@ const TEACHER_EMAIL    = "molivera@bridgeportedu.net";
 const TEACHER_PIN      = "9377";
 
 const ROSTER = {
-  "Aquino-Perez, Steven":     "10048814",
-  "Camas-Alvarez, Mike":      "10060436",
-  "Earle, Jeremiah":          "10038362",
-  "Felix, Chloe":             "10065242",
-  "Flores Marcos, Cornelio":  "10037877",
-  "Gardner, Zy'iere":         "10057389",
-  "Giraldo, Layla":           "10053382",
-  "Lawrence, Lennox":         "10045050",
-  "Millet, Zion":             "10053340",
-  "Michael, Mulan":           "10051762",
-  "Murillo Estrada, Kevin":   "10065967",
-  "Romaniello, Kaylib":       "10041081",
-  "Sanango-Quizhpi, Anthony": "10065990",
-  "Santos-Bautista, Scarlet": "10062436",
-  "Simpson, Jordyn":          "10045306",
-  "Torres, Aryana":           "10053178",
-  "Towns, Micah":             "10043892",
-  "Ulerio-Jimenez, Adrian":   "10061117"
+  "Aquino-Perez, Steven":"10048814","Camas-Alvarez, Mike":"10060436",
+  "Earle, Jeremiah":"10038362","Felix, Chloe":"10065242",
+  "Flores Marcos, Cornelio":"10037877","Gardner, Zy'iere":"10057389",
+  "Giraldo, Layla":"10053382","Lawrence, Lennox":"10045050",
+  "Millet, Zion":"10053340","Michael, Mulan":"10051762",
+  "Murillo Estrada, Kevin":"10065967","Romaniello, Kaylib":"10041081",
+  "Sanango-Quizhpi, Anthony":"10065990","Santos-Bautista, Scarlet":"10062436",
+  "Simpson, Jordyn":"10045306","Torres, Aryana":"10053178",
+  "Towns, Micah":"10043892","Ulerio-Jimenez, Adrian":"10061117"
 };
 
-// ── State ────────────────────────────────────────
-let currentStudent       = null;
-let teacherActiveStudent = null;
-let studentUnsub         = null;
-let teacherUnsub         = null;
-let inboxRefreshTimer    = null;
-let fbReady              = false;
+let currentStudent=null, teacherActiveStudent=null;
+let studentUnsub=null, teacherUnsub=null, inboxTimer=null;
+let fbReady=false;
+let selectedThreadImage=null, selectedBcImage=null;
 
-window.addEventListener('firebase-ready', () => {
-  fbReady = true;
-  renderLandingBanner();
-});
+window.addEventListener('firebase-ready',()=>{fbReady=true;renderLandingBanner();});
 
-// ── Helpers ──────────────────────────────────────
-function fb() { return window._fb; }
-function sKey(name) { return name.replace(/[^a-zA-Z0-9\-_]/g, '_'); }
-function msgCol(name) { const {db, collection} = fb(); return collection(db, 'threads', sKey(name), 'messages'); }
-function escHtml(t) { if(!t)return''; return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function firstName(name) { return name.split(',')[1]?.trim() || name; }
-
-function fmtTs(ts) {
-  if (!ts) return '';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleDateString([],{month:'short',day:'numeric'}) + ' · ' + d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-}
-
-function nowStamp() {
-  const now = new Date();
-  return now.toLocaleDateString([],{month:'short',day:'numeric'}) + ' at ' + now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-}
+const fb=()=>window._fb;
+const sKey=n=>n.replace(/[^a-zA-Z0-9\-_]/g,'_');
+const msgCol=name=>{const{db,collection}=fb();return collection(db,'threads',sKey(name),'messages');};
+const esc=t=>{if(!t)return'';return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+const firstName=n=>n.split(',')[1]?.trim()||n;
+const fmtTs=ts=>{if(!ts)return'';const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString([],{month:'short',day:'numeric'})+' · '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});};
+const nowStamp=()=>{const n=new Date();return n.toLocaleDateString([],{month:'short',day:'numeric'})+' at '+n.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});};
+const scrollThread=id=>{const el=document.getElementById(id);if(el)el.scrollTop=el.scrollHeight;};
 
 function bubbleHTML(m, senderLabel, isTeacher, isBroadcast) {
-  const wrapClass   = isTeacher ? 'from-teacher' : 'from-student';
-  const bubbleClass = isBroadcast ? 'broadcast-bubble' : (isTeacher ? 'teacher-bubble' : 'student-bubble');
-  const timeStr     = m.createdAt ? fmtTs(m.createdAt) : '';
-  const broadcastTag = isBroadcast ? ' 📢' : '';
+  const wrapClass=isTeacher?'from-teacher':'from-student';
+  const timeStr=m.createdAt?fmtTs(m.createdAt):'';
+  const tag=isBroadcast?' 📢':'';
+
+  if(m.type==='image'&&m.imageUrl){
+    const capClass=isBroadcast?'img-caption broadcast-caption':'img-caption';
+    return `<div class="bubble-wrap ${wrapClass}">
+      <div class="bubble image-bubble">
+        <img class="msg-image" src="${esc(m.imageUrl)}" alt="Image from Mr. O" onclick="openLightbox('${esc(m.imageUrl)}')" />
+        ${m.text?`<div class="${capClass}">${esc(m.text)}</div>`:''}
+      </div>
+      <div class="bubble-meta">${esc(senderLabel)}${tag}${timeStr?' &middot; '+timeStr:''}</div>
+    </div>`;
+  }
+
+  const bubbleClass=isBroadcast?'broadcast-bubble':(isTeacher?'teacher-bubble':'student-bubble');
   return `<div class="bubble-wrap ${wrapClass}">
-    <div class="bubble ${bubbleClass}">${escHtml(m.text)}</div>
-    <div class="bubble-meta">${escHtml(senderLabel)}${broadcastTag}${timeStr?' &middot; '+timeStr:''}</div>
+    <div class="bubble ${bubbleClass}">${esc(m.text)}</div>
+    <div class="bubble-meta">${esc(senderLabel)}${tag}${timeStr?' &middot; '+timeStr:''}</div>
   </div>`;
 }
 
-function scrollThread(id) { const el=document.getElementById(id); if(el) el.scrollTop=el.scrollHeight; }
-
-// ── Navigation ───────────────────────────────────
-function showSection(id) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+function showSection(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  if (id === 'sec-landing') renderLandingBanner();
+  if(id==='sec-landing')renderLandingBanner();
 }
 
-// ── Landing Banner ───────────────────────────────
-async function renderLandingBanner() {
-  if (!fbReady) return;
-  const { getDocs, query, orderBy } = fb();
-  const names  = Object.keys(ROSTER);
-  let hasAny   = false;
-  for (const name of names) {
-    const snap = await getDocs(msgCol(name));
-    if (snap.docs.some(d => { const data=d.data(); return data.from==='teacher' && !data.studentRead; })) {
-      hasAny = true; break;
-    }
+async function renderLandingBanner(){
+  if(!fbReady)return;
+  let hasAny=false;
+  for(const name of Object.keys(ROSTER)){
+    const snap=await fb().getDocs(msgCol(name));
+    if(snap.docs.some(d=>{const data=d.data();return data.from==='teacher'&&!data.studentRead;})){hasAny=true;break;}
   }
-  const banner = document.getElementById('landing-banner');
-  banner.className = hasAny ? 'landing-banner active' : 'landing-banner';
+  document.getElementById('landing-banner').className=hasAny?'landing-banner active':'landing-banner';
 }
 
-// ── Name Indicator ───────────────────────────────
-async function onNameSelect() {
-  const name = document.getElementById('s-select-name').value;
-  const ind  = document.getElementById('name-indicator');
-  const ns   = document.getElementById('s-num-section');
-  document.getElementById('s-login-error').style.display = 'none';
-
-  if (!name) { ind.className = 'name-indicator'; ns.style.display = 'none'; return; }
-
-  ns.style.display = 'block';
-
-  if (!fbReady) { ind.className = 'name-indicator'; return; }
-
-  const { getDocs } = fb();
-  const snap    = await getDocs(msgCol(name));
-  const hasNew  = snap.docs.some(d => { const data=d.data(); return data.from==='teacher' && !data.studentRead; });
-  const first   = firstName(name);
-
-  if (hasNew) {
-    ind.className = 'name-indicator waiting';
-    document.getElementById('ind-icon').textContent = '📬';
-    document.getElementById('ind-text').className = 'ind-text w';
-    document.getElementById('ind-text').textContent = `Hey ${first}! You have a new message from Mr. O!`;
+async function onNameSelect(){
+  const name=document.getElementById('s-select-name').value;
+  const ind=document.getElementById('name-indicator');
+  const ns=document.getElementById('s-num-section');
+  document.getElementById('s-login-error').style.display='none';
+  if(!name){ind.className='name-indicator';ns.style.display='none';return;}
+  ns.style.display='block';
+  if(!fbReady){ind.className='name-indicator';return;}
+  const snap=await fb().getDocs(msgCol(name));
+  const hasNew=snap.docs.some(d=>{const data=d.data();return data.from==='teacher'&&!data.studentRead;});
+  const first=firstName(name);
+  if(hasNew){
+    ind.className='name-indicator waiting';
+    document.getElementById('ind-icon').textContent='📬';
+    document.getElementById('ind-text').className='ind-text w';
+    document.getElementById('ind-text').textContent=`Hey ${first}! You have a new message from Mr. O!`;
   } else {
-    ind.className = 'name-indicator clear';
-    document.getElementById('ind-icon').textContent = '✅';
-    document.getElementById('ind-text').className = 'ind-text c';
-    document.getElementById('ind-text').textContent = `Hey ${first}! No new messages right now.`;
+    ind.className='name-indicator clear';
+    document.getElementById('ind-icon').textContent='✅';
+    document.getElementById('ind-text').className='ind-text c';
+    document.getElementById('ind-text').textContent=`Hey ${first}! No new messages right now.`;
   }
 }
 
-// ── Student Login ────────────────────────────────
-function studentLogin() {
-  const name = document.getElementById('s-select-name').value;
-  const num  = document.getElementById('s-number').value.trim();
-  const err  = document.getElementById('s-login-error');
-  err.style.display = 'none';
-  if (!name) { err.textContent = 'Please select your name first.'; err.style.display = 'block'; return; }
-  if (!num)  { err.textContent = 'Please enter your student number.'; err.style.display = 'block'; return; }
-  if (ROSTER[name] !== num) { err.textContent = "That student number doesn't match. Try again!"; err.style.display = 'block'; return; }
-
-  currentStudent = name;
-  document.getElementById('s-number').value = '';
-  document.getElementById('s-send-status').textContent = '';
-  document.getElementById('s-logged-as').textContent = `Signed in as: ${firstName(name)}`;
+function studentLogin(){
+  const name=document.getElementById('s-select-name').value;
+  const num=document.getElementById('s-number').value.trim();
+  const err=document.getElementById('s-login-error');
+  err.style.display='none';
+  if(!name){err.textContent='Please select your name first.';err.style.display='block';return;}
+  if(!num){err.textContent='Please enter your student number.';err.style.display='block';return;}
+  if(ROSTER[name]!==num){err.textContent="That student number doesn't match. Try again!";err.style.display='block';return;}
+  currentStudent=name;
+  document.getElementById('s-number').value='';
+  document.getElementById('s-send-status').textContent='';
+  document.getElementById('s-logged-as').textContent=`Signed in as: ${firstName(name)}`;
   showSection('sec-student-msg');
   listenStudentThread();
 }
 
-function studentLogout() {
-  if (studentUnsub) { studentUnsub(); studentUnsub = null; }
-  currentStudent = null;
-  document.getElementById('s-select-name').value = '';
-  document.getElementById('name-indicator').className = 'name-indicator';
-  document.getElementById('s-num-section').style.display = 'none';
+function studentLogout(){
+  if(studentUnsub){studentUnsub();studentUnsub=null;}
+  currentStudent=null;
+  document.getElementById('s-select-name').value='';
+  document.getElementById('name-indicator').className='name-indicator';
+  document.getElementById('s-num-section').style.display='none';
   showSection('sec-landing');
 }
 
-// ── Student Thread ───────────────────────────────
-function listenStudentThread() {
-  if (studentUnsub) studentUnsub();
-  const { query, orderBy, onSnapshot, doc, updateDoc } = fb();
-  const q = query(msgCol(currentStudent), orderBy('createdAt','asc'));
-  document.getElementById('s-thread').innerHTML = '<div class="empty-thread">Loading…</div>';
-
-  studentUnsub = onSnapshot(q, snap => {
-    const el = document.getElementById('s-thread');
-    if (!el || !currentStudent) return;
-    const msgs = snap.docs.map(d => ({id:d.id,...d.data()}));
-
-    msgs.forEach(m => {
-      if (m.from === 'teacher' && !m.studentRead) {
-        const ref = doc(fb().db, 'threads', sKey(currentStudent), 'messages', m.id);
-        updateDoc(ref, {studentRead: true}).catch(()=>{});
+function listenStudentThread(){
+  if(studentUnsub)studentUnsub();
+  const{query,orderBy,onSnapshot,doc,updateDoc}=fb();
+  const q=query(msgCol(currentStudent),orderBy('createdAt','asc'));
+  document.getElementById('s-thread').innerHTML='<div class="empty-thread">Loading…</div>';
+  studentUnsub=onSnapshot(q,snap=>{
+    const el=document.getElementById('s-thread');
+    if(!el||!currentStudent)return;
+    const msgs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    msgs.forEach(m=>{
+      if(m.from==='teacher'&&!m.studentRead){
+        updateDoc(doc(fb().db,'threads',sKey(currentStudent),'messages',m.id),{studentRead:true}).catch(()=>{});
       }
     });
-
-    if (!msgs.length) { el.innerHTML = '<div class="empty-thread">No messages yet. Say hello to Mr. O! 👋</div>'; return; }
-    el.innerHTML = msgs.map(m => bubbleHTML(m, m.from==='teacher'?'Mr. O':'You', m.from==='teacher', m.broadcast)).join('');
+    if(!msgs.length){el.innerHTML='<div class="empty-thread">No messages yet. Say hello to Mr. O! 👋</div>';return;}
+    el.innerHTML=msgs.map(m=>bubbleHTML(m,m.from==='teacher'?'Mr. O':'You',m.from==='teacher',m.broadcast)).join('');
     scrollThread('s-thread');
   });
 }
 
-async function studentSend() {
-  const text = document.getElementById('s-compose').value.trim();
-  if (!text || !currentStudent) return;
-  const btn = document.getElementById('s-send-btn');
-  const status = document.getElementById('s-send-status');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Sending…';
-  status.textContent = '';
-
-  try {
-    const { addDoc, serverTimestamp } = fb();
-    await addDoc(msgCol(currentStudent), { from:'student', text, createdAt:serverTimestamp(), studentRead:true });
-    document.getElementById('s-compose').value = '';
-
-    emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
-      student_name: firstName(currentStudent),
-      message: text,
-      sent_time: nowStamp(),
-      to_email: TEACHER_EMAIL
-    }).catch(()=>{});
-
-    status.style.color = 'var(--green)';
-    status.textContent = '✓ Message sent to Mr. O!';
-  } catch(e) {
-    status.style.color = 'var(--red)';
-    status.textContent = 'Error sending. Please try again.';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Send Message ✉️';
-  }
+async function studentSend(){
+  const text=document.getElementById('s-compose').value.trim();
+  if(!text||!currentStudent)return;
+  const btn=document.getElementById('s-send-btn');
+  const status=document.getElementById('s-send-status');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Sending…';status.textContent='';
+  try{
+    await fb().addDoc(msgCol(currentStudent),{from:'student',text,createdAt:fb().serverTimestamp(),studentRead:true,type:'text'});
+    document.getElementById('s-compose').value='';
+    emailjs.send(EMAILJS_SERVICE,EMAILJS_TEMPLATE,{student_name:firstName(currentStudent),message:text,sent_time:nowStamp(),to_email:TEACHER_EMAIL}).catch(()=>{});
+    status.style.color='var(--green)';status.textContent='✓ Message sent to Mr. O!';
+  }catch(e){status.style.color='var(--red)';status.textContent='Error sending. Please try again.';}
+  finally{btn.disabled=false;btn.textContent='Send Message ✉️';}
 }
 
-// ── Teacher Login ────────────────────────────────
-function teacherLogin() {
-  const pin = document.getElementById('t-pin-input').value;
-  const err = document.getElementById('t-pin-error');
-  err.style.display = 'none';
-  if (pin !== TEACHER_PIN) { err.style.display = 'block'; return; }
-  document.getElementById('t-pin-input').value = '';
+function teacherLogin(){
+  const pin=document.getElementById('t-pin-input').value;
+  const err=document.getElementById('t-pin-error');
+  err.style.display='none';
+  if(pin!==TEACHER_PIN){err.style.display='block';return;}
+  document.getElementById('t-pin-input').value='';
   showSection('sec-teacher-inbox');
-  loadTeacherInbox();
+  loadInbox();
 }
-
-function teacherLogout() {
-  if (teacherUnsub) { teacherUnsub(); teacherUnsub = null; }
-  if (inboxRefreshTimer) { clearInterval(inboxRefreshTimer); inboxRefreshTimer = null; }
+function teacherLogout(){
+  if(teacherUnsub){teacherUnsub();teacherUnsub=null;}
+  if(inboxTimer){clearInterval(inboxTimer);inboxTimer=null;}
   showSection('sec-landing');
 }
-
-function backToInbox() {
-  if (teacherUnsub) { teacherUnsub(); teacherUnsub = null; }
+function backToInbox(){
+  if(teacherUnsub){teacherUnsub();teacherUnsub=null;}
   showSection('sec-teacher-inbox');
-  loadTeacherInbox();
+  loadInbox();
 }
 
-// ── Teacher Inbox ────────────────────────────────
-async function loadTeacherInbox() {
-  if (inboxRefreshTimer) clearInterval(inboxRefreshTimer);
+async function loadInbox(){
+  if(inboxTimer)clearInterval(inboxTimer);
   await refreshInbox();
-  inboxRefreshTimer = setInterval(() => {
-    if (document.getElementById('sec-teacher-inbox').classList.contains('active')) refreshInbox();
-    else { clearInterval(inboxRefreshTimer); inboxRefreshTimer = null; }
-  }, 8000);
+  inboxTimer=setInterval(()=>{
+    if(document.getElementById('sec-teacher-inbox').classList.contains('active'))refreshInbox();
+    else{clearInterval(inboxTimer);inboxTimer=null;}
+  },8000);
 }
 
-async function refreshInbox() {
-  const { getDocs, query, orderBy } = fb();
-  const names   = Object.keys(ROSTER);
-  const results = {};
-  for (const name of names) {
-    const snap = await getDocs(query(msgCol(name), orderBy('createdAt','asc')));
-    results[name] = snap.docs.map(d => ({id:d.id,...d.data()}));
+async function refreshInbox(){
+  const{getDocs,query,orderBy}=fb();
+  const results={};
+  for(const name of Object.keys(ROSTER)){
+    const snap=await getDocs(query(msgCol(name),orderBy('createdAt','asc')));
+    results[name]=snap.docs.map(d=>({id:d.id,...d.data()}));
   }
-  renderInboxList(results);
-}
-
-function renderInboxList(data) {
-  const names  = Object.keys(ROSTER);
-  const sorted = [...names].sort((a,b) => {
-    const ua = (data[a]||[]).filter(m=>m.from==='student'&&!m.read).length;
-    const ub = (data[b]||[]).filter(m=>m.from==='student'&&!m.read).length;
-    if (ua !== ub) return ub - ua;
-    const ha = (data[a]||[]).length > 0 ? 0 : 1;
-    const hb = (data[b]||[]).length > 0 ? 0 : 1;
-    if (ha !== hb) return ha - hb;
+  const sorted=[...Object.keys(ROSTER)].sort((a,b)=>{
+    const ua=(results[a]||[]).filter(m=>m.from==='student'&&!m.read).length;
+    const ub=(results[b]||[]).filter(m=>m.from==='student'&&!m.read).length;
+    if(ua!==ub)return ub-ua;
+    const ha=(results[a]||[]).length>0?0:1;
+    const hb=(results[b]||[]).length>0?0:1;
+    if(ha!==hb)return ha-hb;
     return a.localeCompare(b);
   });
-
-  document.getElementById('t-student-list').innerHTML = sorted.map(name => {
-    const msgs   = data[name] || [];
-    const last   = msgs[msgs.length-1];
-    const unread = msgs.filter(m=>m.from==='student'&&!m.read).length;
-    const preview= last ? last.text.substring(0,50)+(last.text.length>50?'...':'') : 'No messages yet';
-    const timeStr= last&&last.createdAt ? fmtTs(last.createdAt) : '';
-    const badge  = unread>0
-      ? `<span class="badge unread">${unread} new</span>`
-      : (msgs.length ? `<span class="badge">${msgs.length}</span>` : '');
+  document.getElementById('t-student-list').innerHTML=sorted.map(name=>{
+    const msgs=results[name]||[];
+    const last=msgs[msgs.length-1];
+    const unread=msgs.filter(m=>m.from==='student'&&!m.read).length;
+    const preview=last?(last.type==='image'?'📷 Image':last.text.substring(0,50)+(last.text.length>50?'...':'')):  'No messages yet';
+    const timeStr=last&&last.createdAt?fmtTs(last.createdAt):'';
+    const badge=unread>0?`<span class="badge unread">${unread} new</span>`:(msgs.length?`<span class="badge">${msgs.length}</span>`:'');
     return `<div class="student-row" onclick="openThread('${name.replace(/'/g,"\\'")}')">
       <div style="flex:1;min-width:0">
-        <div class="s-name">${escHtml(name)}</div>
-        <div class="s-preview">${escHtml(preview)}</div>
+        <div class="s-name">${esc(name)}</div>
+        <div class="s-preview">${esc(preview)}</div>
         ${timeStr?`<div class="s-time">${timeStr}</div>`:''}
       </div>
       <div style="margin-left:10px;flex-shrink:0">${badge}</div>
@@ -710,100 +595,143 @@ function renderInboxList(data) {
   }).join('');
 }
 
-// ── Teacher Thread ───────────────────────────────
-function openThread(name) {
-  teacherActiveStudent = name;
-  document.getElementById('t-thread-title').textContent = name;
+function openThread(name){
+  teacherActiveStudent=name;
+  document.getElementById('t-thread-title').textContent=name;
+  removeThreadImage();
+  document.getElementById('t-compose').value='';
+  document.getElementById('t-send-status').textContent='';
   showSection('sec-teacher-thread');
   listenTeacherThread();
 }
 
-function listenTeacherThread() {
-  if (teacherUnsub) teacherUnsub();
-  const { query, orderBy, onSnapshot, doc, updateDoc } = fb();
-  const q = query(msgCol(teacherActiveStudent), orderBy('createdAt','asc'));
-  document.getElementById('t-thread').innerHTML = '<div class="empty-thread">Loading…</div>';
-
-  teacherUnsub = onSnapshot(q, snap => {
-    const el = document.getElementById('t-thread');
-    if (!el) return;
-    const msgs    = snap.docs.map(d => ({id:d.id,...d.data()}));
-    const first   = firstName(teacherActiveStudent);
-
-    msgs.forEach(m => {
-      if (m.from==='student' && !m.read) {
-        const ref = doc(fb().db,'threads',sKey(teacherActiveStudent),'messages',m.id);
-        updateDoc(ref,{read:true}).catch(()=>{});
+function listenTeacherThread(){
+  if(teacherUnsub)teacherUnsub();
+  const{query,orderBy,onSnapshot,doc,updateDoc}=fb();
+  const q=query(msgCol(teacherActiveStudent),orderBy('createdAt','asc'));
+  document.getElementById('t-thread').innerHTML='<div class="empty-thread">Loading…</div>';
+  teacherUnsub=onSnapshot(q,snap=>{
+    const el=document.getElementById('t-thread');
+    if(!el)return;
+    const msgs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const first=firstName(teacherActiveStudent);
+    msgs.forEach(m=>{
+      if(m.from==='student'&&!m.read){
+        updateDoc(doc(fb().db,'threads',sKey(teacherActiveStudent),'messages',m.id),{read:true}).catch(()=>{});
       }
     });
-
-    if (!msgs.length) { el.innerHTML = '<div class="empty-thread">No messages in this conversation yet.</div>'; return; }
-    el.innerHTML = msgs.map(m => bubbleHTML(m, m.from==='teacher'?'Mr. O':first, m.from==='teacher', m.broadcast)).join('');
+    if(!msgs.length){el.innerHTML='<div class="empty-thread">No messages in this conversation yet.</div>';return;}
+    el.innerHTML=msgs.map(m=>bubbleHTML(m,m.from==='teacher'?'Mr. O':first,m.from==='teacher',m.broadcast)).join('');
     scrollThread('t-thread');
   });
 }
 
-async function teacherSend() {
-  const text = document.getElementById('t-compose').value.trim();
-  if (!text || !teacherActiveStudent) return;
-  const { addDoc, serverTimestamp } = fb();
-  await addDoc(msgCol(teacherActiveStudent), {
-    from:'teacher', text, createdAt:serverTimestamp(), studentRead:false, read:true, broadcast:false
-  });
-  document.getElementById('t-compose').value = '';
+// ── Image helpers ──────────────────────────────
+function setupImagePreview(file, previewWrapId, previewImgId, storeVar) { return new Promise(res=>{ const reader=new FileReader(); reader.onload=e=>{document.getElementById(previewImgId).src=e.target.result; document.getElementById(previewWrapId).style.display='block'; res();}; reader.readAsDataURL(file); }); }
+
+function onThreadImageSelected(e){
+  const file=e.target.files[0]; if(!file)return;
+  selectedThreadImage=file;
+  setupImagePreview(file,'t-img-preview-wrap','t-img-preview');
+  e.target.value='';
+}
+function removeThreadImage(){
+  selectedThreadImage=null;
+  document.getElementById('t-img-preview-wrap').style.display='none';
+  document.getElementById('t-img-preview').src='';
 }
 
-// ── Broadcast ────────────────────────────────────
-function showBroadcast() {
-  document.getElementById('bc-compose').value = '';
-  document.getElementById('bc-send-status').textContent = '';
+function onBcImageSelected(e){
+  const file=e.target.files[0]; if(!file)return;
+  selectedBcImage=file;
+  setupImagePreview(file,'bc-img-preview-wrap','bc-img-preview');
+  e.target.value='';
+}
+function removeBcImage(){
+  selectedBcImage=null;
+  document.getElementById('bc-img-preview-wrap').style.display='none';
+  document.getElementById('bc-img-preview').src='';
+}
+
+async function uploadImage(file, path){
+  const{storage,ref,uploadBytes,getDownloadURL}=fb();
+  const imgRef=ref(storage,path);
+  const snapshot=await uploadBytes(imgRef,file);
+  return await getDownloadURL(snapshot.ref);
+}
+
+async function teacherSend(){
+  const text=document.getElementById('t-compose').value.trim();
+  if(!text&&!selectedThreadImage)return;
+  const btn=document.getElementById('t-send-btn');
+  const status=document.getElementById('t-send-status');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Sending…';status.textContent='';
+  try{
+    const{addDoc,serverTimestamp}=fb();
+    if(selectedThreadImage){
+      const imageUrl=await uploadImage(selectedThreadImage,`images/${sKey(teacherActiveStudent)}/${Date.now()}_${selectedThreadImage.name}`);
+      await addDoc(msgCol(teacherActiveStudent),{from:'teacher',type:'image',imageUrl,text:text||'',createdAt:serverTimestamp(),studentRead:false,read:true,broadcast:false});
+      removeThreadImage();
+    } else {
+      await addDoc(msgCol(teacherActiveStudent),{from:'teacher',type:'text',text,createdAt:serverTimestamp(),studentRead:false,read:true,broadcast:false});
+    }
+    document.getElementById('t-compose').value='';
+    status.style.color='var(--green)';status.textContent='✓ Sent!';
+    setTimeout(()=>{status.textContent='';},2000);
+  }catch(e){status.style.color='var(--red)';status.textContent='Error sending. Please try again.';console.error(e);}
+  finally{btn.disabled=false;btn.textContent='Send Reply ✉️';}
+}
+
+function showBroadcast(){
+  document.getElementById('bc-compose').value='';
+  document.getElementById('bc-send-status').textContent='';
+  removeBcImage();
   showSection('sec-broadcast');
 }
 
-async function broadcastSend() {
-  const text = document.getElementById('bc-compose').value.trim();
-  if (!text) return;
-  const btn    = document.getElementById('bc-send-btn');
-  const status = document.getElementById('bc-send-status');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Sending to all students…';
-  status.textContent = '';
+async function broadcastSend(){
+  const text=document.getElementById('bc-compose').value.trim();
+  if(!text&&!selectedBcImage)return;
+  const btn=document.getElementById('bc-send-btn');
+  const status=document.getElementById('bc-send-status');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Sending to all students…';status.textContent='';
+  try{
+    const{addDoc,serverTimestamp}=fb();
+    const names=Object.keys(ROSTER);
+    const ts=serverTimestamp();
 
-  try {
-    const { addDoc, serverTimestamp } = fb();
-    const names = Object.keys(ROSTER);
-    const ts    = serverTimestamp();
-    await Promise.all(names.map(name =>
-      addDoc(msgCol(name), { from:'teacher', text, createdAt:ts, studentRead:false, read:true, broadcast:true })
-    ));
-    document.getElementById('bc-compose').value = '';
-    status.style.color = 'var(--green)';
-    status.textContent = `✓ Message sent to all ${names.length} students!`;
-  } catch(e) {
-    status.style.color = 'var(--red)';
-    status.textContent = 'Error sending. Please try again.';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Send to All Students 📢';
-  }
+    if(selectedBcImage){
+      // Upload image ONCE, reuse the URL for all 18 students
+      status.textContent='Uploading image…';
+      const imageUrl=await uploadImage(selectedBcImage,`broadcasts/${Date.now()}_${selectedBcImage.name}`);
+      await Promise.all(names.map(name=>addDoc(msgCol(name),{from:'teacher',type:'image',imageUrl,text:text||'',createdAt:ts,studentRead:false,read:true,broadcast:true})));
+      removeBcImage();
+    } else {
+      await Promise.all(names.map(name=>addDoc(msgCol(name),{from:'teacher',type:'text',text,createdAt:ts,studentRead:false,read:true,broadcast:true})));
+    }
+    document.getElementById('bc-compose').value='';
+    status.style.color='var(--green)';status.textContent=`✓ Sent to all ${names.length} students!`;
+  }catch(e){status.style.color='var(--red)';status.textContent='Error sending. Please try again.';console.error(e);}
+  finally{btn.disabled=false;btn.textContent='Send to All Students 📢';}
 }
 
-// ── Delete Thread ─────────────────────────────────
-function confirmDelete() {
-  const first = teacherActiveStudent ? firstName(teacherActiveStudent) : 'this student';
-  document.getElementById('delete-modal-msg').textContent =
-    `This will permanently delete all messages between you and ${first}. This cannot be undone.`;
+function confirmDelete(){
+  const first=teacherActiveStudent?firstName(teacherActiveStudent):'this student';
+  document.getElementById('delete-modal-msg').textContent=`This will permanently delete all messages between you and ${first}. This cannot be undone.`;
   document.getElementById('delete-modal').classList.add('open');
 }
-function closeModal() { document.getElementById('delete-modal').classList.remove('open'); }
-async function deleteThread() {
-  if (!teacherActiveStudent) return;
+function closeModal(){document.getElementById('delete-modal').classList.remove('open');}
+async function deleteThread(){
+  if(!teacherActiveStudent)return;
   closeModal();
-  const { getDocs, deleteDoc, query, orderBy } = fb();
-  const snap = await getDocs(query(msgCol(teacherActiveStudent), orderBy('createdAt','asc')));
-  await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+  const{getDocs,deleteDoc,query,orderBy}=fb();
+  const snap=await getDocs(query(msgCol(teacherActiveStudent),orderBy('createdAt','asc')));
+  await Promise.all(snap.docs.map(d=>deleteDoc(d.ref)));
 }
-document.getElementById('delete-modal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
+document.getElementById('delete-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+function openLightbox(url){document.getElementById('lightbox-img').src=url;document.getElementById('lightbox').classList.add('open');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
 </script>
 </body>
 </html>
